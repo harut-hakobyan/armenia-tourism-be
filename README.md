@@ -6,7 +6,7 @@ The backend is intentionally separate from the React frontend in `../armenia-tou
 
 ## Current status
 
-Phases 1 through 3 are complete:
+Phases 1 through 4 are complete:
 
 - Laravel 12 with a PHP 8.4 platform requirement
 - Laravel Sanctum API-token authentication
@@ -28,9 +28,16 @@ Phases 1 through 3 are complete:
 - provider-neutral route calculation with an offline Haversine MVP adapter
 - overlap-safe car and driver availability queries
 - pricing, routing, promotion, and availability tests
+- transactional booking creation for tours, transfers, private drivers, and custom trips
+- concurrency-safe yearly booking numbers and idempotency claims
+- deterministic secure customer access tokens stored only as hashes
+- immutable service, route, tour, customer, and price snapshots
+- booking status history and validated workflow transitions
+- after-commit booking events and queued admin/customer email notifications
+- public booking creation and secure booking-status endpoints
 - complete proposed architecture and MVP roadmap in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Transactional booking creation, service-specific booking details, public APIs, and administration remain scheduled for subsequent tested phases.
+Admin management, remaining public catalog APIs, driver assignment, payments, and the React applications remain scheduled for subsequent tested phases.
 
 ## Requirements
 
@@ -70,6 +77,8 @@ POST /api/v1/auth/login
 GET  /api/v1/auth/me
 POST /api/v1/auth/logout
 GET  /api/v1/admin/health
+POST /api/v1/bookings
+GET  /api/v1/bookings/{bookingNumber}/{secureToken}
 ```
 
 Authenticated requests use `Authorization: Bearer <token>`. The full planned public/admin/driver endpoint map is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

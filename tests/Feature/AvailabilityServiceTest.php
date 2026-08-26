@@ -102,6 +102,7 @@ final class AvailabilityServiceTest extends TestCase
             'booking_number' => 'AMT-2026-000001',
             'secure_token_hash' => hash('sha256', Str::random(64)),
             'idempotency_key' => (string) Str::uuid(),
+            'request_fingerprint' => hash('sha256', 'availability-test'),
             'tour_id' => $tour->id,
             'car_id' => $car->id,
             'driver_id' => $driver->id,

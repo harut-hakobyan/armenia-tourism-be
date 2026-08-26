@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BookingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -8,6 +9,11 @@ Route::prefix('v1')->group(function (): void {
         'status' => 'ok',
         'service' => config('app.name'),
     ]);
+
+    Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/bookings/{bookingNumber}/{token}', [BookingController::class, 'show'])
+        ->where('bookingNumber', 'AMT-\d{4}-\d{6}')
+        ->middleware('throttle:30,1');
 
     Route::prefix('auth')->group(function (): void {
         Route::post('/login', [AuthController::class, 'login'])

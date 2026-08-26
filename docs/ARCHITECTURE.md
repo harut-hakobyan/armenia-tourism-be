@@ -333,6 +333,9 @@ Each phase must pass formatting, static checks where configured, migrations and 
 - Phase 1 complete: Laravel/Sanctum foundation, roles, domain enums and versioned authentication API.
 - Phase 2 complete: destination, translation, fleet, driver, media, tour, multi-day itinerary and tour-price persistence with multilingual Armenia seed data.
 - Phase 3 complete: canonical booking calendar, customer and promo persistence; authoritative pricing; promotion validation; replaceable route calculation; and overlap-aware fleet/driver availability.
-- Next: transactional, idempotent booking creation with service-specific snapshots, booking numbers, secure public tokens, events and notifications.
+- Phase 4 complete: transactional and concurrency-safe booking creation, service-specific snapshots, yearly booking sequences, idempotency claims, secure public lookup, status history/transitions, after-commit events, and queued email notifications.
+- Next: admin/public catalog APIs, policies, fleet assignment workflow, filters, resources and pagination.
 
 Percentage promo values are persisted in basis points (`1000` means `10.00%`); fixed values and all thresholds/caps use currency minor units. The MVP route adapter estimates road distance from straight-line segments using a configurable factor. It is deliberately exposed through `RouteCalculationService`, so a routing provider can replace it without changing pricing or booking workflows.
+
+Public booking tokens are deterministic HMAC values derived from the booking UUID and application key. Only a SHA-256 token hash is persisted. This allows an identical idempotent retry to receive the same secure URL without storing a recoverable plaintext token. `booking_idempotency_keys` serializes concurrent requests for the same key and rejects reuse with a different request fingerprint.

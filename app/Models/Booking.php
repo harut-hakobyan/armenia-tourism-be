@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 final class Booking extends Model
@@ -20,7 +22,7 @@ final class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'uuid', 'booking_number', 'secure_token_hash', 'idempotency_key',
+        'uuid', 'booking_number', 'secure_token_hash', 'idempotency_key', 'request_fingerprint',
         'customer_id', 'tour_id', 'car_id', 'driver_id', 'promo_code_id',
         'service_type', 'booking_date', 'pickup_time', 'starts_at', 'planned_end_at',
         'pickup_address', 'pickup_latitude', 'pickup_longitude', 'dropoff_address',
@@ -97,5 +99,30 @@ final class Booking extends Model
     public function promoCode(): BelongsTo
     {
         return $this->belongsTo(PromoCode::class);
+    }
+
+    public function tourDetail(): HasOne
+    {
+        return $this->hasOne(TourBookingDetail::class);
+    }
+
+    public function transferDetail(): HasOne
+    {
+        return $this->hasOne(TransferBookingDetail::class);
+    }
+
+    public function privateDriverDetail(): HasOne
+    {
+        return $this->hasOne(PrivateDriverBookingDetail::class);
+    }
+
+    public function customTripDetail(): HasOne
+    {
+        return $this->hasOne(CustomTripBookingDetail::class);
+    }
+
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(BookingStatusHistory::class)->orderBy('created_at');
     }
 }

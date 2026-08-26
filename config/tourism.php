@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 return [
+    'notifications' => [
+        'admin_email' => env('BOOKING_ADMIN_EMAIL', 'admin@armeniatourism.local'),
+    ],
+
     'routing' => [
         // MVP fallback only. Replace the bound contract with Mapbox/Google in production.
         'road_factor' => (float) env('ROUTE_ROAD_FACTOR', 1.20),
