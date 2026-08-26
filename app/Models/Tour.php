@@ -77,4 +77,9 @@ final class Tour extends Model
     {
         return $this->morphMany(Media::class, 'mediable')->orderBy('sort_order');
     }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
 }

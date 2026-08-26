@@ -332,4 +332,7 @@ Each phase must pass formatting, static checks where configured, migrations and 
 
 - Phase 1 complete: Laravel/Sanctum foundation, roles, domain enums and versioned authentication API.
 - Phase 2 complete: destination, translation, fleet, driver, media, tour, multi-day itinerary and tour-price persistence with multilingual Armenia seed data.
-- Next: pricing, routing and availability service contracts and implementations.
+- Phase 3 complete: canonical booking calendar, customer and promo persistence; authoritative pricing; promotion validation; replaceable route calculation; and overlap-aware fleet/driver availability.
+- Next: transactional, idempotent booking creation with service-specific snapshots, booking numbers, secure public tokens, events and notifications.
+
+Percentage promo values are persisted in basis points (`1000` means `10.00%`); fixed values and all thresholds/caps use currency minor units. The MVP route adapter estimates road distance from straight-line segments using a configurable factor. It is deliberately exposed through `RouteCalculationService`, so a routing provider can replace it without changing pricing or booking workflows.

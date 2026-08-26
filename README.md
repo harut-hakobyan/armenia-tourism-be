@@ -6,7 +6,7 @@ The backend is intentionally separate from the React frontend in `../armenia-tou
 
 ## Current status
 
-Phases 1 and 2 are complete:
+Phases 1 through 3 are complete:
 
 - Laravel 12 with a PHP 8.4 platform requirement
 - Laravel Sanctum API-token authentication
@@ -22,9 +22,15 @@ Phases 1 and 2 are complete:
 - polymorphic media metadata for covers, galleries, and profile photos
 - idempotent seeders with 15 destinations, 8 tours, 6 cars, and 2 drivers
 - catalog relationship and schema tests
+- canonical customer, promotion, and booking-calendar persistence
+- server-authoritative tour, transfer, private-driver, and custom-trip pricing
+- promo-code validation with percentage, fixed, minimum-order, cap, date, and usage rules
+- provider-neutral route calculation with an offline Haversine MVP adapter
+- overlap-safe car and driver availability queries
+- pricing, routing, promotion, and availability tests
 - complete proposed architecture and MVP roadmap in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Pricing behavior, availability, booking transactions, public APIs, and administration remain scheduled for subsequent tested phases.
+Transactional booking creation, service-specific booking details, public APIs, and administration remain scheduled for subsequent tested phases.
 
 ## Requirements
 

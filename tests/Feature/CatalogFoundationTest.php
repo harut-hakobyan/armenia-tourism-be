@@ -35,6 +35,7 @@ final class CatalogFoundationTest extends TestCase
         $this->assertDatabaseCount('tour_days', 9);
         $this->assertDatabaseCount('tour_stops', 35);
         $this->assertDatabaseCount('tour_prices', 24);
+        $this->assertDatabaseCount('promo_codes', 2);
     }
 
     public function test_tour_itinerary_is_ordered_and_supports_multiple_days(): void
