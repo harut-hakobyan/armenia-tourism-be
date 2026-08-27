@@ -5,14 +5,22 @@ declare(strict_types=1);
 namespace App\Http\Requests\PublicApi;
 
 use App\Enums\CarCategory;
+use App\Http\Requests\PublicApi\Concerns\NormalizesQueryBooleans;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 final class ListCarsRequest extends FormRequest
 {
+    use NormalizesQueryBooleans;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeQueryBooleans(['child_seat']);
     }
 
     /** @return array<string, mixed> */

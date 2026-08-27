@@ -19,7 +19,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
     {
         $this->seed();
 
-        $this->getJson('/api/v1/destinations?locale=en&featured=1&per_page=5')
+        $this->getJson('/api/v1/destinations?locale=en&featured=true&per_page=5')
             ->assertOk()
             ->assertHeader('Content-Language', 'en')
             ->assertJsonCount(5, 'data')
@@ -56,7 +56,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.0.slug', 'historical')
             ->assertJsonPath('data.0.name', 'Historical');
 
-        $this->getJson('/api/v1/tours?locale=en&category=historical&featured=1&sort=price_asc')
+        $this->getJson('/api/v1/tours?locale=en&category=historical&featured=true&sort=price_asc')
             ->assertOk()
             ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'garni-geghard')
@@ -80,6 +80,9 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.0.name', 'Mercedes-Benz Vito')
             ->assertJsonPath('data.0.rates.currency', 'EUR')
             ->assertJsonMissingPath('data.0.plate_number');
+
+        $this->getJson('/api/v1/cars?child_seat=false')
+            ->assertOk();
     }
 
     public function test_all_estimate_endpoints_return_server_authoritative_minor_unit_prices(): void
