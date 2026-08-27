@@ -4,7 +4,7 @@ Last updated: 2026-08-27
 
 ## Current position
 
-Completed 6 of 10 MVP phases.
+Completed 9 of 10 MVP phases.
 
 1. Laravel backend foundation - complete
 2. Catalog, fleet, translations, and seed data - complete
@@ -12,44 +12,47 @@ Completed 6 of 10 MVP phases.
 4. Transactional booking system - complete
 5. Admin and driver operations API - complete
 6. Public catalog and estimation API - complete
-7. React/TypeScript frontend foundation - next
-8. Public website and booking experience - pending
-9. Admin and driver interfaces - pending
-10. Hardening, Docker, CI, deployment, and documentation - pending
+7. React/TypeScript frontend foundation - complete
+8. Public website and booking experience - complete
+9. Admin and driver interfaces - complete
+10. Hardening, Docker, CI, deployment, and documentation - next
 
 ## Latest verified state
 
-- Laravel 12, PHP 8.4, Sanctum authentication, and role middleware
-- Multilingual destinations, categories, tours, fleet, media, and multi-day itineraries
-- Transactional bookings with idempotency, secure public tokens, assignments, and driver workflow
-- Locale resolution through explicit `locale` or `Accept-Language`, with English fallback
-- Active-only paginated destination, tour, category, and car APIs
-- Localized SEO, gallery, category, itinerary, and multi-day tour responses
-- Filtered/sorted catalog collections suitable for the booking UI
-- Server-authoritative estimate APIs for tours, transfers, private drivers, and custom trips
-- Estimate calculations share the exact pricing, promotion, and routing services used during booking
-- Operational car fields such as plate numbers are excluded from public resources
+Backend:
 
-Verification at handoff:
+- Dashboard counts, recognized revenue, top tours, and top cars
+- Paginated admin directories for tours, destinations, cars, and drivers
+- Manager-authorized active/visibility controls for catalog and fleet records
+- Booking-specific conflict-safe available car/driver endpoint
+- Driver resources include internal IDs only on authenticated driver routes
+- Full backend suite: 35 tests passed, 257 assertions
+- Phase 9 operations suite: 5 tests passed, 81 assertions
 
-- Full suite: 34 tests passed, 225 assertions
-- Phase 6 public API suite: 4 tests passed, 69 assertions
-- Laravel Pint passed on 158 files
-- Public and operational route registration passed
-- Estimate-to-booking price parity verified
+Frontend:
+
+- Admin dashboard with live operational statistics and revenue
+- Searchable/filterable/paginated booking table and date-range calendar
+- Booking detail, confirmation, cancellation, and compatible car/driver assignment
+- Tour, destination, car, and driver directory visibility management
+- Mobile-first driver trip list, contact actions, details, and controlled next-status workflow
+- Reusable operations layouts and status badges
+- Strict TypeScript and ESLint passed
+- Frontend suite: 4 files and 8 tests passed
+- Production build passed with lazy-loaded public feature chunks
 
 ## Resume point
 
-Start Phase 7 in `../armenia-tourism-fe` with:
+Start Phase 10 across both repositories with:
 
-1. Vite, React, and strict TypeScript project foundation
-2. Tailwind CSS and the premium Armenia visual token system
-3. React Router route tree and public/admin/driver layouts
-4. Axios API client, environment configuration, and error handling
-5. TanStack Query provider, query-key conventions, and typed API contracts
-6. English, Russian, and Armenian UI message architecture
-7. Responsive reusable UI primitives and build verification
+1. Complete remaining CMS persistence/APIs and admin screens: customers, reviews, promo codes, FAQs, settings, and contact inquiries
+2. Add audit logging for assignment, status, cancellation, visibility, price, and refund actions
+3. Add backend Docker Compose services for Laravel, Nginx, MySQL, and Redis
+4. Add production Nginx, queue worker, scheduler, health checks, and environment documentation
+5. Add GitHub Actions for backend and frontend quality gates
+6. Complete security/rate-limit/file-upload review and production deployment documentation
+7. Run fresh migrations/seeders, full backend/frontend suites, builds, and final smoke checks
 
 Suggested resume request:
 
-> Continue the Armenia Tourism platform from `docs/PROGRESS.md` and implement Phase 7.
+> Continue the Armenia Tourism platform from `docs/PROGRESS.md` and implement Phase 10.

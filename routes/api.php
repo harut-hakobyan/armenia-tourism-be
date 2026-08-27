@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AssignmentAvailabilityController;
 use App\Http\Controllers\Api\V1\Admin\BookingOperationsController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\DirectoryController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\Driver\TripController;
@@ -55,9 +58,17 @@ Route::prefix('v1')->group(function (): void {
         ->middleware(['auth:sanctum', 'role:admin']);
 
     Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
+        Route::get('/dashboard', DashboardController::class);
+        Route::get('/directory/tours', [DirectoryController::class, 'tours']);
+        Route::get('/directory/destinations', [DirectoryController::class, 'destinations']);
+        Route::get('/directory/cars', [DirectoryController::class, 'cars']);
+        Route::get('/directory/drivers', [DirectoryController::class, 'drivers']);
+        Route::patch('/directory/{type}/{id}', [DirectoryController::class, 'update'])
+            ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers']);
         Route::get('/bookings/calendar', [BookingOperationsController::class, 'calendar']);
         Route::get('/bookings', [BookingOperationsController::class, 'index']);
         Route::get('/bookings/{booking}', [BookingOperationsController::class, 'show']);
+        Route::get('/bookings/{booking}/availability', AssignmentAvailabilityController::class);
         Route::post('/bookings/{booking}/confirm', [BookingOperationsController::class, 'confirm']);
         Route::post('/bookings/{booking}/assign', [BookingOperationsController::class, 'assign']);
         Route::post('/bookings/{booking}/status', [BookingOperationsController::class, 'status']);

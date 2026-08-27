@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Api\V1\Driver;
 use App\Enums\DriverTripStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Driver\UpdateDriverTripStatusRequest;
-use App\Http\Resources\BookingResource;
+use App\Http\Resources\DriverBookingResource;
 use App\Models\Booking;
 use App\Models\Driver;
 use App\Services\Booking\DriverTripStatusTransitionService;
@@ -37,21 +37,21 @@ final class TripController extends Controller
             ->paginate((int) ($validated['per_page'] ?? 20))
             ->withQueryString();
 
-        return BookingResource::collection($bookings);
+        return DriverBookingResource::collection($bookings);
     }
 
-    public function show(Request $request, Booking $booking): BookingResource
+    public function show(Request $request, Booking $booking): DriverBookingResource
     {
         Gate::authorize('view', $booking);
 
-        return new BookingResource($this->loadDetails($booking));
+        return new DriverBookingResource($this->loadDetails($booking));
     }
 
     public function status(
         UpdateDriverTripStatusRequest $request,
         Booking $booking,
         DriverTripStatusTransitionService $statuses,
-    ): BookingResource {
+    ): DriverBookingResource {
         $validated = $request->validated();
         $updated = $statuses->transition(
             $booking,
@@ -60,7 +60,7 @@ final class TripController extends Controller
             $validated['note'] ?? null,
         );
 
-        return new BookingResource($this->loadDetails($updated));
+        return new DriverBookingResource($this->loadDetails($updated));
     }
 
     private function driver(Request $request): Driver

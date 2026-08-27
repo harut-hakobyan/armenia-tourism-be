@@ -22,6 +22,35 @@ final class AdminDriverOperationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_operations_dashboard_directories_and_assignment_availability_are_available_to_managers(): void
+    {
+        $this->seed();
+        $booking = $this->createTourBooking();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+
+        $this->actingAs($manager)->getJson('/api/v1/admin/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.counts.pending', 1)
+            ->assertJsonStructure(['data' => ['counts', 'revenue', 'top_tours', 'top_cars']]);
+
+        foreach (['tours', 'destinations', 'cars', 'drivers'] as $directory) {
+            $this->actingAs($manager)->getJson("/api/v1/admin/directory/{$directory}")
+                ->assertOk()->assertJsonStructure(['data', 'current_page', 'total']);
+        }
+
+        $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+        $this->actingAs($manager)->patchJson("/api/v1/admin/directory/cars/{$car->id}", ['active' => false])
+            ->assertOk()->assertJsonPath('data.active', false);
+        $this->assertDatabaseHas('cars', ['id' => $car->id, 'active' => false]);
+        $car->refresh()->update(['active' => true]);
+
+        $this->actingAs($manager)->postJson("/api/v1/admin/bookings/{$booking->id}/confirm")->assertOk();
+        $this->actingAs($manager)->getJson("/api/v1/admin/bookings/{$booking->id}/availability")
+            ->assertOk()
+            ->assertJsonCount(6, 'data.cars')
+            ->assertJsonCount(2, 'data.drivers');
+    }
+
     public function test_admin_and_manager_can_query_booking_operations_but_customers_cannot(): void
     {
         $this->seed();
@@ -140,6 +169,7 @@ final class AdminDriverOperationsTest extends TestCase
             ->getJson('/api/v1/driver/trips?status=assigned')
             ->assertOk()
             ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $booking->id)
             ->assertJsonPath('data.0.customer.phone', '+37499123456');
 
         $this->actingAs($driver->user)
