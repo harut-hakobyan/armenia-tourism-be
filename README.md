@@ -8,7 +8,7 @@ Current development handoff: [docs/PROGRESS.md](docs/PROGRESS.md)
 
 ## Current status
 
-Phases 1 through 6 are complete:
+The ten-phase MVP is implemented:
 
 - Laravel 12 with a PHP 8.4 platform requirement
 - Laravel Sanctum API-token authentication
@@ -45,9 +45,15 @@ Phases 1 through 6 are complete:
 - paginated catalog filtering and sorting with active-only public visibility
 - server-authoritative tour, transfer, private-driver, and custom-trip estimate APIs
 - estimate-to-booking parity through shared pricing, promotion, and routing services
+- React-backed admin and driver operational APIs
+- persisted customers, reviews, promotions, multilingual FAQs, contact inquiries, and website settings
+- admin-only settings and audit history with auditable assignment, status, visibility, moderation, and CMS changes
+- validated provider-neutral media uploads with public-storage and S3-compatible architecture
+- Docker services for PHP-FPM, Nginx, MySQL, Redis, queues, and the scheduler
+- backend/frontend GitHub Actions quality gates and production deployment guidance
 - complete proposed architecture and MVP roadmap in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Remaining admin/CMS modules, payments, and the React applications remain scheduled for subsequent tested phases.
+Online payment-provider implementations, live tracking, partner services, bots, hotels, and mobile apps remain intentionally outside the MVP.
 
 ## Requirements
 
@@ -56,7 +62,20 @@ Remaining admin/CMS modules, payments, and the React applications remain schedul
 - MySQL 8.4+
 - Redis 7+
 
-Docker Compose application services will be added in the delivery phase. Until then, Composer's official image can run checks on a host with Docker.
+Docker is the recommended local runtime. A host PHP installation remains supported.
+
+## Docker setup
+
+```bash
+cp .env.example .env
+docker compose build
+docker run --rm armenia-tourism-be-app php artisan key:generate --show
+# Paste the displayed value into APP_KEY in .env
+docker compose up -d
+docker compose exec app php artisan migrate --seed
+```
+
+The API is available at `http://localhost:8000`. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before deploying production credentials or data.
 
 ## Local installation
 
@@ -96,6 +115,11 @@ GET  /api/v1/tours
 GET  /api/v1/tours/{slug}
 GET  /api/v1/cars
 GET  /api/v1/cars/{id}
+GET  /api/v1/faqs
+GET  /api/v1/settings
+GET  /api/v1/reviews
+POST /api/v1/reviews
+POST /api/v1/contact-inquiries
 POST /api/v1/pricing/tours/estimate
 POST /api/v1/transfers/estimate
 POST /api/v1/private-driver/estimate
@@ -109,6 +133,14 @@ POST /api/v1/admin/bookings/{booking}/confirm
 POST /api/v1/admin/bookings/{booking}/assign
 POST /api/v1/admin/bookings/{booking}/status
 POST /api/v1/admin/bookings/{booking}/cancel
+GET  /api/v1/admin/customers
+GET  /api/v1/admin/reviews
+GET  /api/v1/admin/promo-codes
+GET  /api/v1/admin/faqs
+GET  /api/v1/admin/inquiries
+GET  /api/v1/admin/settings
+GET  /api/v1/admin/audit-logs
+POST /api/v1/admin/media/{type}/{id}
 GET  /api/v1/driver/trips
 GET  /api/v1/driver/trips/{booking}
 POST /api/v1/driver/trips/{booking}/status

@@ -14,6 +14,7 @@ final class MediaResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
             'uuid' => $this->uuid,
             'url' => Storage::disk($this->disk)->url($this->path),
             'alt_text' => $this->alt_text,

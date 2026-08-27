@@ -9,6 +9,7 @@ use App\Models\Car;
 use App\Models\Destination;
 use App\Models\Driver;
 use App\Models\Tour;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ final class DirectoryController extends Controller
         return response()->json(Driver::query()->with('cars:id,brand,model')->orderBy('first_name')->paginate($this->perPage($request)));
     }
 
-    public function update(Request $request, string $type, int $id): JsonResponse
+    public function update(Request $request, string $type, int $id, AuditLogger $audit): JsonResponse
     {
         $model = $this->model($type, $id);
         $validated = $request->validate([
@@ -49,7 +50,10 @@ final class DirectoryController extends Controller
             'drivers' => ['active'],
             default => [],
         };
-        $model->update(array_intersect_key($validated, array_flip($allowed)));
+        $changes = array_intersect_key($validated, array_flip($allowed));
+        $old = $model->only(array_keys($changes));
+        $model->update($changes);
+        $audit->record($request->user(), "{$type}.visibility_updated", $model, $old, $model->only(array_keys($changes)), $request->ip());
 
         return response()->json(['data' => $model->refresh()]);
     }

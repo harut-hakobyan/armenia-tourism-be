@@ -1,0 +1,22 @@
+name: Backend quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: vendor/bin/pint --test
+      - run: composer validate --strict
+      - run: php artisan test

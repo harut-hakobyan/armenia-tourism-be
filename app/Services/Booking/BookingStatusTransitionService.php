@@ -9,10 +9,13 @@ use App\Events\BookingStatusChanged;
 use App\Exceptions\InvalidBookingStatusTransition;
 use App\Models\Booking;
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 
 final class BookingStatusTransitionService
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     /** @var array<string, list<BookingStatus>> */
     private const ALLOWED_TRANSITIONS = [
         'pending' => [BookingStatus::Confirmed, BookingStatus::Cancelled],
@@ -55,6 +58,14 @@ final class BookingStatusTransitionService
                 'note' => $note,
                 'ip_address' => $ipAddress,
             ]);
+            $this->audit->record(
+                $actor,
+                'booking.status_changed',
+                $locked,
+                ['booking_status' => $fromStatus->value],
+                ['booking_status' => $toStatus->value],
+                $ipAddress,
+            );
 
             BookingStatusChanged::dispatch($locked, $fromStatus, $toStatus);
 

@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
             DriverSeeder::class,
             TourSeeder::class,
             PromoCodeSeeder::class,
+            CmsSeeder::class,
         ]);
     }
 }

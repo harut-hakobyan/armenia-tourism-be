@@ -2,14 +2,19 @@
 
 use App\Http\Controllers\Api\V1\Admin\AssignmentAvailabilityController;
 use App\Http\Controllers\Api\V1\Admin\BookingOperationsController;
+use App\Http\Controllers\Api\V1\Admin\CmsController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\DirectoryController;
+use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\SettingsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\Driver\TripController;
 use App\Http\Controllers\Api\V1\PublicApi\CarController;
+use App\Http\Controllers\Api\V1\PublicApi\ContentController;
 use App\Http\Controllers\Api\V1\PublicApi\DestinationController;
 use App\Http\Controllers\Api\V1\PublicApi\EstimateController;
+use App\Http\Controllers\Api\V1\PublicApi\ReviewController;
 use App\Http\Controllers\Api\V1\PublicApi\TourCategoryController;
 use App\Http\Controllers\Api\V1\PublicApi\TourController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +40,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/tours/{tour:slug}', [TourController::class, 'show']);
         Route::get('/cars', [CarController::class, 'index']);
         Route::get('/cars/{car}', [CarController::class, 'show']);
+        Route::get('/faqs', [ContentController::class, 'faqs']);
+        Route::get('/settings', [ContentController::class, 'settings']);
+        Route::get('/reviews', [ReviewController::class, 'index']);
 
         Route::middleware('throttle:30,1')->group(function (): void {
             Route::post('/pricing/tours/estimate', [EstimateController::class, 'tour']);
@@ -43,6 +51,9 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/custom-trips/estimate', [EstimateController::class, 'customTrip']);
         });
     });
+
+    Route::post('/contact-inquiries', [ContentController::class, 'contact'])->middleware('throttle:5,1');
+    Route::post('/reviews', [ReviewController::class, 'store'])->middleware('throttle:5,1');
 
     Route::prefix('auth')->group(function (): void {
         Route::post('/login', [AuthController::class, 'login'])
@@ -73,6 +84,26 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/bookings/{booking}/assign', [BookingOperationsController::class, 'assign']);
         Route::post('/bookings/{booking}/status', [BookingOperationsController::class, 'status']);
         Route::post('/bookings/{booking}/cancel', [BookingOperationsController::class, 'cancel']);
+        Route::get('/customers', [CmsController::class, 'customers']);
+        Route::get('/reviews', [CmsController::class, 'reviews']);
+        Route::patch('/reviews/{review}', [CmsController::class, 'updateReview']);
+        Route::get('/promo-codes', [CmsController::class, 'promoCodes']);
+        Route::post('/promo-codes', [CmsController::class, 'storePromoCode']);
+        Route::patch('/promo-codes/{promoCode}', [CmsController::class, 'updatePromoCode']);
+        Route::get('/faqs', [CmsController::class, 'faqs']);
+        Route::post('/faqs', [CmsController::class, 'storeFaq']);
+        Route::patch('/faqs/{faq}', [CmsController::class, 'updateFaq']);
+        Route::get('/inquiries', [CmsController::class, 'inquiries']);
+        Route::patch('/inquiries/{inquiry}', [CmsController::class, 'updateInquiry']);
+        Route::post('/media/{type}/{id}', [MediaController::class, 'store'])
+            ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers', 'tour-categories']);
+        Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function (): void {
+        Route::get('/settings', [SettingsController::class, 'index']);
+        Route::patch('/settings/{setting}', [SettingsController::class, 'update']);
+        Route::get('/audit-logs', [SettingsController::class, 'auditLogs']);
     });
 
     Route::middleware(['auth:sanctum', 'role:driver'])->prefix('driver')->group(function (): void {

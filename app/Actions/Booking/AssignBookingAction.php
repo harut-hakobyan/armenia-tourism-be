@@ -12,6 +12,7 @@ use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use App\Services\Availability\AvailabilityService;
 use App\Services\Booking\BookingStatusTransitionService;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ final class AssignBookingAction
     public function __construct(
         private readonly AvailabilityService $availability,
         private readonly BookingStatusTransitionService $statuses,
+        private readonly AuditLogger $audit,
     ) {}
 
     public function execute(Booking $booking, Car $car, Driver $driver, User $actor, ?string $note = null): Booking
@@ -61,6 +63,7 @@ final class AssignBookingAction
             }
 
             $previousDriverStatus = $lockedBooking->driver_trip_status;
+            $oldAssignment = $lockedBooking->only(['car_id', 'driver_id', 'driver_trip_status']);
             $lockedBooking->update([
                 'car_id' => $lockedCar->id,
                 'driver_id' => $lockedDriver->id,
@@ -73,6 +76,7 @@ final class AssignBookingAction
                 'to_status' => DriverTripStatus::Assigned,
                 'note' => $note ?? 'Driver and car assigned.',
             ]);
+            $this->audit->record($actor, 'booking.assigned', $lockedBooking, $oldAssignment, $lockedBooking->only(['car_id', 'driver_id', 'driver_trip_status']));
 
             if ($lockedBooking->booking_status === BookingStatus::Confirmed) {
                 $lockedBooking = $this->statuses->transition(
