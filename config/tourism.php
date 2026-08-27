@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 return [
+    'locales' => ['en', 'ru', 'hy'],
+
     'notifications' => [
         'admin_email' => env('BOOKING_ADMIN_EMAIL', 'admin@armeniatourism.local'),
     ],

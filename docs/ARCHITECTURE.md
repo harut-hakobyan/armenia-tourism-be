@@ -15,6 +15,8 @@ Key decisions:
 - Roles are a small application enum for the MVP. Policies enforce resource actions; route middleware only provides broad area protection.
 - Routing, pricing, currency conversion, payment and outbound notification providers are contracts with replaceable adapters.
 - Availability is checked again inside the booking transaction. Database indexes plus transactional locking protect against concurrent assignments.
+- Public catalog localization uses explicit `locale`, then `Accept-Language`, then English fallback; responses declare `Content-Language`.
+- Estimate endpoints call the same pricing, promotion, and provider-neutral routing services as booking creation, preventing frontend/backend price drift.
 
 ## Backend folder structure
 

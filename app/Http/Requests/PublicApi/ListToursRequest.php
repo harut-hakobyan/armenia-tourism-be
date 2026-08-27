@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\PublicApi;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+final class ListToursRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [
+            'locale' => ['nullable', 'in:en,ru,hy'],
+            'category' => ['nullable', 'string', 'max:100', 'exists:tour_categories,slug'],
+            'featured' => ['nullable', 'boolean'],
+            'passengers' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'sort' => ['nullable', Rule::in(['recommended', 'price_asc', 'price_desc', 'duration_asc'])],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ];
+    }
+}

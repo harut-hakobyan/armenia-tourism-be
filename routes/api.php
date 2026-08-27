@@ -4,6 +4,11 @@ use App\Http\Controllers\Api\V1\Admin\BookingOperationsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\Driver\TripController;
+use App\Http\Controllers\Api\V1\PublicApi\CarController;
+use App\Http\Controllers\Api\V1\PublicApi\DestinationController;
+use App\Http\Controllers\Api\V1\PublicApi\EstimateController;
+use App\Http\Controllers\Api\V1\PublicApi\TourCategoryController;
+use App\Http\Controllers\Api\V1\PublicApi\TourController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -16,6 +21,25 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/bookings/{bookingNumber}/{token}', [BookingController::class, 'show'])
         ->where('bookingNumber', 'AMT-\d{4}-\d{6}')
         ->middleware('throttle:30,1');
+
+    Route::middleware('api.locale')->group(function (): void {
+        Route::get('/destinations', [DestinationController::class, 'index']);
+        Route::get('/destinations/{destination:slug}', [DestinationController::class, 'show']);
+        Route::get('/tour-categories', [TourCategoryController::class, 'index']);
+        Route::get('/tour-categories/{category:slug}/tours', [TourController::class, 'category']);
+        Route::get('/tour-categories/{category:slug}', [TourCategoryController::class, 'show']);
+        Route::get('/tours', [TourController::class, 'index']);
+        Route::get('/tours/{tour:slug}', [TourController::class, 'show']);
+        Route::get('/cars', [CarController::class, 'index']);
+        Route::get('/cars/{car}', [CarController::class, 'show']);
+
+        Route::middleware('throttle:30,1')->group(function (): void {
+            Route::post('/pricing/tours/estimate', [EstimateController::class, 'tour']);
+            Route::post('/transfers/estimate', [EstimateController::class, 'transfer']);
+            Route::post('/private-driver/estimate', [EstimateController::class, 'privateDriver']);
+            Route::post('/custom-trips/estimate', [EstimateController::class, 'customTrip']);
+        });
+    });
 
     Route::prefix('auth')->group(function (): void {
         Route::post('/login', [AuthController::class, 'login'])

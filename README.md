@@ -8,7 +8,7 @@ Current development handoff: [docs/PROGRESS.md](docs/PROGRESS.md)
 
 ## Current status
 
-Phases 1 through 5 are complete:
+Phases 1 through 6 are complete:
 
 - Laravel 12 with a PHP 8.4 platform requirement
 - Laravel Sanctum API-token authentication
@@ -41,9 +41,13 @@ Phases 1 through 5 are complete:
 - conflict-safe car/driver assignment with authorized vehicle validation
 - controlled admin booking and driver trip status workflows with history
 - assigned-trip APIs for drivers and queued driver assignment notifications
+- locale-aware public destination, category, tour, itinerary, and car APIs
+- paginated catalog filtering and sorting with active-only public visibility
+- server-authoritative tour, transfer, private-driver, and custom-trip estimate APIs
+- estimate-to-booking parity through shared pricing, promotion, and routing services
 - complete proposed architecture and MVP roadmap in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Remaining catalog/admin modules, public estimation APIs, payments, and the React applications remain scheduled for subsequent tested phases.
+Remaining admin/CMS modules, payments, and the React applications remain scheduled for subsequent tested phases.
 
 ## Requirements
 
@@ -83,6 +87,19 @@ POST /api/v1/auth/login
 GET  /api/v1/auth/me
 POST /api/v1/auth/logout
 GET  /api/v1/admin/health
+GET  /api/v1/destinations
+GET  /api/v1/destinations/{slug}
+GET  /api/v1/tour-categories
+GET  /api/v1/tour-categories/{slug}
+GET  /api/v1/tour-categories/{slug}/tours
+GET  /api/v1/tours
+GET  /api/v1/tours/{slug}
+GET  /api/v1/cars
+GET  /api/v1/cars/{id}
+POST /api/v1/pricing/tours/estimate
+POST /api/v1/transfers/estimate
+POST /api/v1/private-driver/estimate
+POST /api/v1/custom-trips/estimate
 POST /api/v1/bookings
 GET  /api/v1/bookings/{bookingNumber}/{secureToken}
 GET  /api/v1/admin/bookings
