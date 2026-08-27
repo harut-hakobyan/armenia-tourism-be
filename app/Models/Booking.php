@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\BookingStatus;
 use App\Enums\CurrencyCode;
+use App\Enums\DriverTripStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ServiceType;
@@ -30,7 +31,8 @@ final class Booking extends Model
         'customer_email', 'customer_phone', 'customer_whatsapp',
         'customer_nationality', 'customer_notes', 'subtotal_minor',
         'discount_minor', 'deposit_amount_minor', 'total_minor', 'currency',
-        'payment_method', 'payment_status', 'booking_status', 'price_breakdown', 'admin_notes',
+        'payment_method', 'payment_status', 'booking_status', 'driver_trip_status',
+        'price_breakdown', 'admin_notes',
     ];
 
     protected static function booted(): void
@@ -60,6 +62,7 @@ final class Booking extends Model
             'payment_method' => PaymentMethod::class,
             'payment_status' => PaymentStatus::class,
             'booking_status' => BookingStatus::class,
+            'driver_trip_status' => DriverTripStatus::class,
             'price_breakdown' => 'array',
         ];
     }
@@ -124,5 +127,10 @@ final class Booking extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(BookingStatusHistory::class)->orderBy('created_at');
+    }
+
+    public function driverTripStatusHistory(): HasMany
+    {
+        return $this->hasMany(DriverTripStatusHistory::class)->orderBy('created_at');
     }
 }

@@ -9,4 +9,6 @@ use App\Models\Booking;
 interface BookingNotificationService
 {
     public function sendBookingCreated(Booking $booking): void;
+
+    public function sendDriverAssigned(Booking $booking): void;
 }

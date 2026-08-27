@@ -17,6 +17,7 @@ final class BookingResource extends JsonResource
             'booking_number' => $this->booking_number,
             'service_type' => $this->service_type->value,
             'booking_status' => $this->booking_status->value,
+            'driver_trip_status' => $this->driver_trip_status?->value,
             'payment_status' => $this->payment_status->value,
             'payment_method' => $this->payment_method->value,
             'booking_date' => $this->booking_date->toDateString(),
@@ -60,6 +61,9 @@ final class BookingResource extends JsonResource
             ],
             'service_details' => $this->serviceDetails(),
             'status_history' => BookingStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
+            'driver_trip_status_history' => DriverTripStatusHistoryResource::collection(
+                $this->whenLoaded('driverTripStatusHistory'),
+            ),
             'created_at' => $this->created_at->toIso8601String(),
         ];
     }

@@ -115,6 +115,7 @@ erDiagram
     CUSTOM_TRIP_BOOKING_DETAILS ||--o{ CUSTOM_TRIP_STOPS : orders
     DESTINATIONS ||--o{ CUSTOM_TRIP_STOPS : references
     BOOKINGS ||--o{ BOOKING_STATUS_HISTORY : tracks
+    BOOKINGS ||--o{ DRIVER_TRIP_STATUS_HISTORY : tracks
     BOOKINGS ||--o{ PAYMENTS : pays
     BOOKINGS ||--o{ REVIEWS : verifies
     PROMO_CODES ||--o{ PROMO_CODE_REDEMPTIONS : redeemed
@@ -153,6 +154,7 @@ erDiagram
 - `custom_trip_booking_details`: route summary, return preference and calculated distance/durations.
 - `custom_trip_stops`: ordered route points with optional destination link and coordinate/address snapshot.
 - `booking_status_history`: actor, old/new status, note and timestamp.
+- `driver_trip_status_history`: assigned driver, actor, old/new operational status, note and timestamp.
 - `payments`: provider-neutral payment attempts, provider references, amount/currency, status and payload metadata.
 - `reviews`: booking-linked review; verified is granted only for a completed booking.
 

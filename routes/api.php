@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\BookingOperationsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\Driver\TripController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -27,4 +29,20 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/admin/health', static fn (): array => ['status' => 'ok'])
         ->middleware(['auth:sanctum', 'role:admin']);
+
+    Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
+        Route::get('/bookings/calendar', [BookingOperationsController::class, 'calendar']);
+        Route::get('/bookings', [BookingOperationsController::class, 'index']);
+        Route::get('/bookings/{booking}', [BookingOperationsController::class, 'show']);
+        Route::post('/bookings/{booking}/confirm', [BookingOperationsController::class, 'confirm']);
+        Route::post('/bookings/{booking}/assign', [BookingOperationsController::class, 'assign']);
+        Route::post('/bookings/{booking}/status', [BookingOperationsController::class, 'status']);
+        Route::post('/bookings/{booking}/cancel', [BookingOperationsController::class, 'cancel']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:driver'])->prefix('driver')->group(function (): void {
+        Route::get('/trips', [TripController::class, 'index']);
+        Route::get('/trips/{booking}', [TripController::class, 'show']);
+        Route::post('/trips/{booking}/status', [TripController::class, 'status']);
+    });
 });

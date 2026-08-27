@@ -8,6 +8,7 @@ use App\Contracts\BookingNotificationService;
 use App\Models\Booking;
 use App\Notifications\AdminNewBookingNotification;
 use App\Notifications\CustomerBookingConfirmationNotification;
+use App\Notifications\DriverAssignedNotification;
 use App\Services\Booking\BookingAccessTokenService;
 use Illuminate\Support\Facades\Notification;
 
@@ -27,6 +28,14 @@ final class LaravelBookingNotificationService implements BookingNotificationServ
 
             Notification::route('mail', $booking->customer_email)
                 ->notify(new CustomerBookingConfirmationNotification($booking, $publicUrl));
+        }
+    }
+
+    public function sendDriverAssigned(Booking $booking): void
+    {
+        if ($booking->driver?->email) {
+            Notification::route('mail', $booking->driver->email)
+                ->notify(new DriverAssignedNotification($booking));
         }
     }
 }

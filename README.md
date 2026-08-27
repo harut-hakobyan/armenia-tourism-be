@@ -4,9 +4,11 @@ Production-oriented Laravel REST API for an Armenia private-tour, airport-transf
 
 The backend is intentionally separate from the React frontend in `../armenia-tourism-fe`. Its versioned API is designed for the web application, future mobile clients, and driver/admin integrations.
 
+Current development handoff: [docs/PROGRESS.md](docs/PROGRESS.md)
+
 ## Current status
 
-Phases 1 through 4 are complete:
+Phases 1 through 5 are complete:
 
 - Laravel 12 with a PHP 8.4 platform requirement
 - Laravel Sanctum API-token authentication
@@ -35,9 +37,13 @@ Phases 1 through 4 are complete:
 - booking status history and validated workflow transitions
 - after-commit booking events and queued admin/customer email notifications
 - public booking creation and secure booking-status endpoints
+- policy-protected admin/manager booking lists, filters, calendar, and details
+- conflict-safe car/driver assignment with authorized vehicle validation
+- controlled admin booking and driver trip status workflows with history
+- assigned-trip APIs for drivers and queued driver assignment notifications
 - complete proposed architecture and MVP roadmap in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Admin management, remaining public catalog APIs, driver assignment, payments, and the React applications remain scheduled for subsequent tested phases.
+Remaining catalog/admin modules, public estimation APIs, payments, and the React applications remain scheduled for subsequent tested phases.
 
 ## Requirements
 
@@ -79,6 +85,16 @@ POST /api/v1/auth/logout
 GET  /api/v1/admin/health
 POST /api/v1/bookings
 GET  /api/v1/bookings/{bookingNumber}/{secureToken}
+GET  /api/v1/admin/bookings
+GET  /api/v1/admin/bookings/calendar
+GET  /api/v1/admin/bookings/{booking}
+POST /api/v1/admin/bookings/{booking}/confirm
+POST /api/v1/admin/bookings/{booking}/assign
+POST /api/v1/admin/bookings/{booking}/status
+POST /api/v1/admin/bookings/{booking}/cancel
+GET  /api/v1/driver/trips
+GET  /api/v1/driver/trips/{booking}
+POST /api/v1/driver/trips/{booking}/status
 ```
 
 Authenticated requests use `Authorization: Bearer <token>`. The full planned public/admin/driver endpoint map is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -55,4 +55,9 @@ final class Driver extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function tripStatusHistory(): HasMany
+    {
+        return $this->hasMany(DriverTripStatusHistory::class);
+    }
 }
