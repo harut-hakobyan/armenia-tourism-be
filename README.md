@@ -171,6 +171,8 @@ The webhook endpoint is `/api/v1/telegram/webhook`. Telegram requests must conta
 
 Admin/manager bot actions include recent booking lists, details, confirmation, cancellation, and guided available-car/driver assignment. Drivers receive assigned trips and can advance through `on_the_way`, `arrived`, `passenger_picked_up`, `trip_started`, and `completed`.
 
+Connected users can pause or resume alerts from the Telegram page in the web panel, or with `/notifications off` and `/notifications on` in the private bot chat. Bot commands remain available while alerts are paused.
+
 Remove the registered webhook with `php artisan telegram:webhook --remove`.
 
 ## Quality checks

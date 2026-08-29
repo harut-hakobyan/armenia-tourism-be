@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'role:admin,manager,driver'])->prefix('telegram')->group(function (): void {
         Route::get('/', [TelegramConnectionController::class, 'show']);
         Route::post('/link', [TelegramConnectionController::class, 'link'])->middleware('throttle:5,1');
+        Route::patch('/preferences', [TelegramConnectionController::class, 'preferences']);
         Route::delete('/', [TelegramConnectionController::class, 'destroy']);
     });
 

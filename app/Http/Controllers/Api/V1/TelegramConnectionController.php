@@ -18,6 +18,7 @@ final class TelegramConnectionController extends Controller
 
     public function link(Request $request): JsonResponse
     {
+        abort_if(! $this->configured(), 503, 'Telegram bot is not configured yet. Add the bot credentials and restart the backend.');
         $token = Str::random(32);
         $request->user()->update([
             'telegram_link_token_hash' => hash('sha256', $token),
@@ -31,6 +32,14 @@ final class TelegramConnectionController extends Controller
             'link_code' => $token,
             'expires_at' => now()->addMinutes(15)->toIso8601String(),
         ]]);
+    }
+
+    public function preferences(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['notifications_enabled' => ['required', 'boolean']]);
+        $request->user()->update(['telegram_notifications_enabled' => $validated['notifications_enabled']]);
+
+        return response()->json(['data' => $this->status($request)]);
     }
 
     public function destroy(Request $request): JsonResponse
@@ -51,6 +60,14 @@ final class TelegramConnectionController extends Controller
             'username' => $request->user()->telegram_username,
             'notifications_enabled' => $request->user()->telegram_notifications_enabled,
             'bot_username' => config('tourism.telegram.bot_username'),
+            'configured' => $this->configured(),
         ];
+    }
+
+    private function configured(): bool
+    {
+        return filled(config('tourism.telegram.bot_token'))
+            && filled(config('tourism.telegram.bot_username'))
+            && filled(config('tourism.telegram.webhook_secret'));
     }
 }

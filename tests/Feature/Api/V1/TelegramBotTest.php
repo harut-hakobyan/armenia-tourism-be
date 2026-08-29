@@ -24,7 +24,11 @@ final class TelegramBotTest extends TestCase
 
     public function test_authorized_user_can_link_telegram_and_confirm_booking(): void
     {
-        config(['tourism.telegram.bot_username' => 'ArmeniaJourneysBot', 'tourism.telegram.bot_token' => null]);
+        config([
+            'tourism.telegram.bot_username' => 'ArmeniaJourneysBot',
+            'tourism.telegram.bot_token' => 'test-token',
+            'tourism.telegram.webhook_secret' => 'test-secret',
+        ]);
         $client = new RecordingTelegramClient;
         $this->app->instance(TelegramBotClient::class, $client);
         $manager = User::factory()->create(['role' => UserRole::Manager]);
@@ -46,6 +50,30 @@ final class TelegramBotTest extends TestCase
         $this->assertSame(BookingStatus::Confirmed, $booking->refresh()->booking_status);
         $this->assertNotEmpty($client->messages);
         $this->assertSame('Done', $client->answers['callback-1']);
+
+        $this->actingAs($manager)->patchJson('/api/v1/telegram/preferences', ['notifications_enabled' => false])
+            ->assertOk()->assertJsonPath('data.notifications_enabled', false);
+
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'message' => ['text' => '/notifications on', 'chat' => ['id' => 123456, 'type' => 'private']],
+        ]);
+        $this->assertTrue($manager->refresh()->telegram_notifications_enabled);
+    }
+
+    public function test_connection_link_requires_complete_bot_configuration(): void
+    {
+        config([
+            'tourism.telegram.bot_username' => null,
+            'tourism.telegram.bot_token' => null,
+            'tourism.telegram.webhook_secret' => null,
+        ]);
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+
+        $this->actingAs($manager)->getJson('/api/v1/telegram')
+            ->assertOk()->assertJsonPath('data.configured', false);
+        $this->actingAs($manager)->postJson('/api/v1/telegram/link')
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Telegram bot is not configured yet. Add the bot credentials and restart the backend.');
     }
 
     public function test_webhook_requires_secret_and_queues_update_once(): void

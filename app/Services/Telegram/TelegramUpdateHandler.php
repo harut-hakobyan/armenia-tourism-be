@@ -73,7 +73,11 @@ final class TelegramUpdateHandler
         }
         if ($text === '/help' || $text === '/start') {
             $commands = $user->role === UserRole::Driver ? '/trips — upcoming assigned trips' : '/bookings — recent bookings';
-            $this->client->sendMessage($chatId, "<b>Available commands</b>\n{$commands}\n/help — this message");
+            $this->client->sendMessage($chatId, "<b>Available commands</b>\n{$commands}\n/notifications on — enable alerts\n/notifications off — pause alerts\n/help — this message");
+        } elseif (preg_match('/^\/notifications(?:@\w+)?\s+(on|off)$/i', $text, $matches)) {
+            $enabled = strtolower($matches[1]) === 'on';
+            $user->update(['telegram_notifications_enabled' => $enabled]);
+            $this->client->sendMessage($chatId, $enabled ? 'Telegram notifications enabled.' : 'Telegram notifications paused. Bot commands remain available.');
         } elseif ($text === '/bookings' && $user->hasAnyRole(UserRole::Admin, UserRole::Manager)) {
             Booking::query()->latest()->limit(5)->get()->each(fn (Booking $booking) => $this->adminBooking($chatId, $booking));
         } elseif ($text === '/trips' && $user->role === UserRole::Driver && $user->driver) {
