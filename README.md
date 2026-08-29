@@ -1,6 +1,6 @@
 # Armenia Tourism API
 
-Production-oriented Laravel REST API for an Armenia private-tour, airport-transfer, private-driver and custom-trip booking platform.
+Production-oriented Laravel REST API for an Armenia private-tour, scheduled group-tour, airport-transfer, private-driver and custom-trip booking platform.
 
 The backend is intentionally separate from the React frontend in `../armenia-tourism-fe`. Its versioned API is designed for the web application, future mobile clients, and driver/admin integrations.
 
@@ -22,7 +22,7 @@ The ten-phase MVP is implemented:
 - single-day and multi-day tours with ordered itinerary stops
 - tour price matrices prepared for the pricing engine
 - polymorphic media metadata for covers, galleries, and profile photos
-- idempotent seeders with 15 destinations, 8 tours, 6 cars, and 2 drivers
+- idempotent seeders with 15 destinations, 8 private tours, 2 group tours, 12 upcoming group departures, 6 cars, and 2 drivers
 - catalog relationship and schema tests
 - canonical customer, promotion, and booking-calendar persistence
 - server-authoritative tour, transfer, private-driver, and custom-trip pricing

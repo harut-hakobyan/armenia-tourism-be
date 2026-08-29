@@ -10,6 +10,7 @@ use App\Data\RoutePoint;
 use App\Data\RouteResult;
 use App\Enums\ServiceType;
 use App\Models\Car;
+use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use Carbon\CarbonImmutable;
 
@@ -72,6 +73,39 @@ final class ServiceEstimateService
             $route->drivingDurationMinutes + $extraWaitingMinutes,
             ['extra_waiting_minutes' => $extraWaitingMinutes],
         );
+    }
+
+    /** @return array<string, mixed> */
+    public function groupTour(
+        Tour $tour,
+        GroupTourDeparture $departure,
+        int $passengers,
+        ?string $promoCode = null,
+        ?string $customerEmail = null,
+    ): array {
+        $price = $this->pricing->calculateGroupTour(
+            $tour,
+            $departure,
+            $passengers,
+            $promoCode,
+            $customerEmail,
+        );
+
+        return [
+            'service_type' => ServiceType::Tour->value,
+            'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
+            'tour_format' => 'group',
+            'group_tour_departure_id' => $departure->id,
+            'car' => ['id' => $departure->car->id, 'name' => "{$departure->car->brand} {$departure->car->model}"],
+            'booking_date' => $departure->starts_at->toDateString(),
+            'starts_at' => $departure->starts_at->toIso8601String(),
+            'meeting_point' => $departure->meeting_point,
+            'passengers' => $passengers,
+            'duration_minutes' => $tour->duration_minutes,
+            'pricing_type' => 'per_person',
+            'remaining_seats' => $departure->remainingSeats(),
+            'price' => $price->toArray(),
+        ];
     }
 
     /** @return array<string, mixed> */

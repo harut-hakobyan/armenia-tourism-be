@@ -56,13 +56,13 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.0.slug', 'historical')
             ->assertJsonPath('data.0.name', 'Historical');
 
-        $this->getJson('/api/v1/tours?locale=en&category=historical&featured=true&sort=price_asc')
+        $this->getJson('/api/v1/tours?locale=en&category=historical&format=private&featured=true&sort=price_asc')
             ->assertOk()
             ->assertJsonCount(3, 'data')
             ->assertJsonPath('data.0.slug', 'garni-geghard')
             ->assertJsonPath('data.0.starting_price.pricing_type', 'per_car');
 
-        $this->getJson('/api/v1/tour-categories/nature/tours?locale=en')
+        $this->getJson('/api/v1/tour-categories/nature/tours?locale=en&format=private')
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.category.slug', 'nature');
@@ -73,6 +73,13 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.category.slug', 'historical')
             ->assertJsonCount(5, 'data.itinerary')
             ->assertJsonPath('data.itinerary.1.destination.slug', 'garni');
+
+        $groupTour = $this->getJson('/api/v1/tours/garni-geghard-group-tour?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.format', 'group')
+            ->assertJsonPath('data.starting_price.pricing_type', 'per_person')
+            ->assertJsonCount(6, 'data.upcoming_departures');
+        $this->assertSame(7, $groupTour->json('data.upcoming_departures.0.remaining_seats'));
 
         $this->getJson('/api/v1/cars?passengers=7&luggage=5&sort=capacity_desc')
             ->assertOk()

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\PublicApi;
 
+use App\Enums\TourFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicApi\CustomTripEstimateRequest;
 use App\Http\Requests\PublicApi\PrivateDriverEstimateRequest;
 use App\Http\Requests\PublicApi\TourEstimateRequest;
 use App\Http\Requests\PublicApi\TransferEstimateRequest;
 use App\Models\Car;
+use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use App\Services\Pricing\ServiceEstimateService;
 use Carbon\CarbonImmutable;
@@ -24,13 +26,34 @@ final class EstimateController extends Controller
     {
         $data = $request->validated();
 
+        $tour = Tour::query()->active()->findOrFail($data['tour_id']);
+
+        if ($tour->format === TourFormat::Group) {
+            if (! isset($data['group_tour_departure_id'])) {
+                throw ValidationException::withMessages(['group_tour_departure_id' => 'Choose a group tour departure.']);
+            }
+            $departure = GroupTourDeparture::query()->bookable()
+                ->where('tour_id', $tour->id)
+                ->with(['bookings', 'car'])
+                ->findOrFail($data['group_tour_departure_id']);
+            if ($departure->remainingSeats() < (int) $data['passengers']) {
+                throw ValidationException::withMessages(['passengers' => 'Not enough seats remain for this departure.']);
+            }
+
+            return $this->respond(fn (): array => $estimates->groupTour(
+                $tour, $departure, (int) $data['passengers'],
+                $data['promo_code'] ?? null, $data['customer_email'] ?? null,
+            ));
+        }
+
+        if (! isset($data['car_id'])) {
+            throw ValidationException::withMessages(['car_id' => 'Choose a car for this private tour.']);
+        }
+
         return $this->respond(fn (): array => $estimates->tour(
-            Tour::query()->active()->findOrFail($data['tour_id']),
-            Car::query()->findOrFail($data['car_id']),
-            (int) $data['passengers'],
+            $tour, Car::query()->findOrFail($data['car_id']), (int) $data['passengers'],
             CarbonImmutable::createFromFormat('Y-m-d', $data['booking_date'], config('app.timezone')),
-            $data['promo_code'] ?? null,
-            $data['customer_email'] ?? null,
+            $data['promo_code'] ?? null, $data['customer_email'] ?? null,
         ));
     }
 

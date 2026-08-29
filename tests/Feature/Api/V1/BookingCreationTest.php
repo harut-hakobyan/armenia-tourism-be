@@ -10,6 +10,7 @@ use App\Exceptions\InvalidBookingStatusTransition;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Driver;
+use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use App\Models\User;
 use App\Notifications\AdminNewBookingNotification;
@@ -94,6 +95,36 @@ final class BookingCreationTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('message', 'The selected car is no longer available for this time.');
         $this->assertDatabaseCount('bookings', 1);
+    }
+
+    public function test_group_departure_accepts_multiple_seat_bookings_and_prevents_overselling(): void
+    {
+        $this->seed();
+        $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
+        $departure = GroupTourDeparture::query()->where('tour_id', $tour->id)->orderBy('starts_at')->firstOrFail();
+        $payload = $this->basePayload('tour', $departure->car_id, $departure->starts_at->toDateString());
+        unset($payload['car_id']);
+        $payload['tour_id'] = $tour->id;
+        $payload['group_tour_departure_id'] = $departure->id;
+        $payload['passengers'] = 4;
+
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.price.total_minor', 10000);
+
+        $payload['idempotency_key'] = (string) Str::uuid();
+        $payload['customer_email'] = 'second-group@example.com';
+        $payload['passengers'] = 3;
+        $this->postJson('/api/v1/bookings', $payload)->assertCreated();
+
+        $payload['idempotency_key'] = (string) Str::uuid();
+        $payload['customer_email'] = 'sold-out@example.com';
+        $payload['passengers'] = 1;
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Not enough seats remain for this group departure.');
+
+        $this->assertSame(7, (int) Booking::query()->where('group_tour_departure_id', $departure->id)->sum('passengers'));
     }
 
     public function test_transfer_private_driver_and_custom_trip_store_service_specific_snapshots(): void

@@ -24,7 +24,7 @@ final class Booking extends Model
 
     protected $fillable = [
         'uuid', 'booking_number', 'secure_token_hash', 'idempotency_key', 'request_fingerprint',
-        'customer_id', 'tour_id', 'car_id', 'driver_id', 'promo_code_id',
+        'customer_id', 'tour_id', 'group_tour_departure_id', 'car_id', 'driver_id', 'promo_code_id',
         'service_type', 'booking_date', 'pickup_time', 'starts_at', 'planned_end_at',
         'pickup_address', 'pickup_latitude', 'pickup_longitude', 'dropoff_address',
         'dropoff_latitude', 'dropoff_longitude', 'passengers', 'customer_name',
@@ -87,6 +87,11 @@ final class Booking extends Model
     public function tour(): BelongsTo
     {
         return $this->belongsTo(Tour::class);
+    }
+
+    public function groupTourDeparture(): BelongsTo
+    {
+        return $this->belongsTo(GroupTourDeparture::class);
     }
 
     public function car(): BelongsTo

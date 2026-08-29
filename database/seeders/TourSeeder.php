@@ -6,8 +6,13 @@ namespace Database\Seeders;
 
 use App\Enums\CarCategory;
 use App\Enums\CurrencyCode;
+use App\Enums\GroupTourDepartureStatus;
 use App\Enums\PricingType;
+use App\Enums\TourFormat;
+use App\Models\Car;
 use App\Models\Destination;
+use App\Models\Driver;
+use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\TourDay;
@@ -71,6 +76,18 @@ final class TourSeeder extends Seeder
                     ['jermuk', 'yerevan'],
                 ],
             ],
+            [
+                'slug' => 'garni-geghard-group-tour', 'category' => 'historical', 'duration' => 480,
+                'distance' => 95, 'price' => 2500, 'featured' => true, 'format' => TourFormat::Group,
+                'titles' => ['Garni & Geghard Group Tour', 'Групповой тур Гарни и Гегард', 'Գառնի և Գեղարդ խմբային տուր'],
+                'days' => [['yerevan', 'garni', 'symphony-of-stones', 'geghard', 'yerevan']],
+            ],
+            [
+                'slug' => 'sevan-dilijan-group-tour', 'category' => 'nature', 'duration' => 600,
+                'distance' => 220, 'price' => 3500, 'featured' => true, 'format' => TourFormat::Group,
+                'titles' => ['Lake Sevan & Dilijan Group Tour', 'Групповой тур Севан и Дилижан', 'Սևան և Դիլիջան խմբային տուր'],
+                'days' => [['yerevan', 'lake-sevan', 'dilijan', 'yerevan']],
+            ],
         ];
 
         $destinationIds = Destination::query()->pluck('id', 'slug');
@@ -85,10 +102,11 @@ final class TourSeeder extends Seeder
                     'approximate_distance_km' => $data['distance'],
                     'starting_price_minor' => $data['price'],
                     'currency' => CurrencyCode::Eur,
-                    'pricing_type' => PricingType::PerCar,
+                    'pricing_type' => isset($data['format']) ? PricingType::PerPerson : PricingType::PerCar,
+                    'format' => $data['format'] ?? TourFormat::Private,
                     'active' => true,
                     'featured' => $data['featured'],
-                    'max_passengers' => 7,
+                    'max_passengers' => isset($data['format']) ? 7 : 7,
                     'pickup_available' => true,
                     'dropoff_available' => true,
                     'free_cancellation_hours' => 24,
@@ -98,7 +116,13 @@ final class TourSeeder extends Seeder
 
             foreach (['en', 'ru', 'hy'] as $localeIndex => $locale) {
                 $title = $data['titles'][$localeIndex];
-                $shortDescription = match ($locale) {
+                $shortDescription = isset($data['format'])
+                    ? match ($locale) {
+                        'ru' => 'Присоединяйтесь к небольшой группе с профессиональным водителем и запланированным маршрутом.',
+                        'hy' => 'Միացեք փոքր խմբին՝ պրոֆեսիոնալ վարորդով և նախապես պլանավորված երթուղով։',
+                        default => 'Join a small group with a professional driver, a scheduled departure, and a carefully planned route.',
+                    }
+                : match ($locale) {
                     'ru' => 'Комфортный частный тур с профессиональным водителем, гибким маршрутом и трансфером из отеля.',
                     'hy' => 'Հարմարավետ մասնավոր տուր՝ փորձառու վարորդով, ճկուն երթուղով և հյուրանոցից տեղափոխմամբ։',
                     default => 'A comfortable private tour with a professional driver, flexible timing, and hotel pickup.',
@@ -109,8 +133,8 @@ final class TourSeeder extends Seeder
                     [
                         'title' => $title,
                         'short_description' => $shortDescription,
-                        'description' => $shortDescription.' The price is for the selected car, not per passenger.',
-                        'seo_title' => "{$title} | Private Armenia Tour",
+                        'description' => $shortDescription.(isset($data['format']) ? ' The displayed price is per person.' : ' The price is for the selected car, not per passenger.'),
+                        'seo_title' => "{$title} | Armenia Tour",
                         'seo_description' => $shortDescription,
                     ],
                 );
@@ -145,9 +169,13 @@ final class TourSeeder extends Seeder
                 }
             }
 
-            $this->seedPrice($tour, CarCategory::Comfort, $data['price'], 0);
-            $this->seedPrice($tour, CarCategory::Suv, null, 4000);
-            $this->seedPrice($tour, CarCategory::Minivan, null, 6000);
+            if (($data['format'] ?? TourFormat::Private) === TourFormat::Private) {
+                $this->seedPrice($tour, CarCategory::Comfort, $data['price'], 0);
+                $this->seedPrice($tour, CarCategory::Suv, null, 4000);
+                $this->seedPrice($tour, CarCategory::Minivan, null, 6000);
+            } else {
+                $this->seedGroupDepartures($tour);
+            }
         }
     }
 
@@ -166,5 +194,30 @@ final class TourSeeder extends Seeder
                 'active' => true,
             ],
         );
+    }
+
+    private function seedGroupDepartures(Tour $tour): void
+    {
+        $car = Car::query()->where('plate_number', 'AMT-501')->firstOrFail();
+        $driver = Driver::query()->where('preferred_car_id', $car->id)->first();
+        $firstSaturday = now()->startOfDay()->next('Saturday')->setTime(9, 0);
+
+        foreach (range(0, 5) as $week) {
+            $startsAt = $firstSaturday->copy()->addWeeks($week);
+            GroupTourDeparture::query()->updateOrCreate(
+                ['tour_id' => $tour->id, 'starts_at' => $startsAt],
+                [
+                    'car_id' => $car->id,
+                    'driver_id' => $driver?->id,
+                    'ends_at' => $startsAt->copy()->addMinutes($tour->duration_minutes),
+                    'meeting_point' => 'Republic Square, Yerevan',
+                    'capacity' => min(7, $car->passenger_capacity),
+                    'price_per_person_minor' => $tour->starting_price_minor,
+                    'currency' => $tour->currency,
+                    'status' => GroupTourDepartureStatus::Scheduled,
+                    'active' => true,
+                ],
+            );
+        }
     }
 }

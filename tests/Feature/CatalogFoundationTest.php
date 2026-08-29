@@ -30,11 +30,12 @@ final class CatalogFoundationTest extends TestCase
         $this->assertDatabaseCount('cars', 6);
         $this->assertDatabaseCount('drivers', 2);
         $this->assertDatabaseCount('driver_cars', 2);
-        $this->assertDatabaseCount('tours', 8);
-        $this->assertDatabaseCount('tour_translations', 24);
-        $this->assertDatabaseCount('tour_days', 9);
-        $this->assertDatabaseCount('tour_stops', 35);
+        $this->assertDatabaseCount('tours', 10);
+        $this->assertDatabaseCount('tour_translations', 30);
+        $this->assertDatabaseCount('tour_days', 11);
+        $this->assertDatabaseCount('tour_stops', 44);
         $this->assertDatabaseCount('tour_prices', 24);
+        $this->assertDatabaseCount('group_tour_departures', 12);
         $this->assertDatabaseCount('promo_codes', 2);
     }
 

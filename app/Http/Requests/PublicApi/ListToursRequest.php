@@ -28,6 +28,7 @@ final class ListToursRequest extends FormRequest
         return [
             'locale' => ['nullable', 'in:en,ru,hy'],
             'category' => ['nullable', 'string', 'max:100', 'exists:tour_categories,slug'],
+            'format' => ['nullable', Rule::in(['private', 'group'])],
             'featured' => ['nullable', 'boolean'],
             'passengers' => ['nullable', 'integer', 'min:1', 'max:20'],
             'search' => ['nullable', 'string', 'max:100'],

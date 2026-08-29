@@ -17,8 +17,9 @@ final readonly class CreateBookingData
     public function __construct(
         public string $idempotencyKey,
         public ServiceType $serviceType,
-        public int $carId,
+        public ?int $carId,
         public ?int $tourId,
+        public ?int $groupTourDepartureId,
         public CarbonImmutable $startsAt,
         public int $passengers,
         public string $pickupAddress,
@@ -47,6 +48,7 @@ final readonly class CreateBookingData
             'service_type' => $this->serviceType->value,
             'car_id' => $this->carId,
             'tour_id' => $this->tourId,
+            'group_tour_departure_id' => $this->groupTourDepartureId,
             'starts_at' => $this->startsAt->toIso8601String(),
             'passengers' => $this->passengers,
             'pickup' => [$this->pickupAddress, $this->pickupLatitude, $this->pickupLongitude],

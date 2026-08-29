@@ -1,10 +1,19 @@
 # Development Progress
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ## Current position
 
 Completed all 10 planned MVP phases.
+
+Post-MVP enhancement completed: scheduled small-group tours alongside the original private-tour offering.
+
+- Explicit `private` and `group` tour formats with API filtering
+- Scheduled group departures with vehicle, driver, meeting point, capacity, and optional departure price
+- Per-person authoritative estimates and transactional remaining-seat validation
+- Multiple customer bookings can safely share one departure; overselling is prevented with row locking
+- Two multilingual sample group tours and twelve upcoming departures
+- Public Private/Group filters, format badges, per-person labels, departure selection, and group booking UX
 
 1. Laravel backend foundation - complete
 2. Catalog, fleet, translations, and seed data - complete

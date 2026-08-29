@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
+use App\Enums\TourFormat;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,7 @@ final class Tour extends Model
 
     protected $fillable = [
         'category_id', 'slug', 'duration_minutes', 'approximate_distance_km',
-        'starting_price_minor', 'currency', 'pricing_type', 'active', 'featured',
+        'starting_price_minor', 'currency', 'pricing_type', 'format', 'active', 'featured',
         'max_passengers', 'pickup_available', 'dropoff_available',
         'free_cancellation_hours', 'sort_order',
     ];
@@ -33,6 +34,7 @@ final class Tour extends Model
             'starting_price_minor' => 'integer',
             'currency' => CurrencyCode::class,
             'pricing_type' => PricingType::class,
+            'format' => TourFormat::class,
             'active' => 'boolean',
             'featured' => 'boolean',
             'max_passengers' => 'integer',
@@ -81,5 +83,10 @@ final class Tour extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function groupDepartures(): HasMany
+    {
+        return $this->hasMany(GroupTourDeparture::class)->orderBy('starts_at');
     }
 }
