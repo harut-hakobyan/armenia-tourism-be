@@ -40,9 +40,14 @@ final class TelegramBotTest extends TestCase
             'message' => ['text' => $code, 'chat' => ['id' => 123456, 'type' => 'private'], 'from' => ['username' => 'manager_one']],
         ]);
         $this->assertDatabaseHas('users', ['id' => $manager->id, 'telegram_chat_id' => '123456', 'telegram_username' => 'manager_one']);
+        $this->assertNotEmpty($client->messages[0]['keyboard']);
 
         $this->seed();
         $booking = $this->createBooking();
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'message' => ['text' => '/bookings@ArmeniaJourneysBot', 'chat' => ['id' => 123456, 'type' => 'private']],
+        ]);
+        $this->assertStringContainsString($booking->booking_number, $client->messages[array_key_last($client->messages)]['text']);
         $this->app->make(TelegramUpdateHandler::class)->handle([
             'callback_query' => ['id' => 'callback-1', 'data' => "bc:confirm:{$booking->id}", 'message' => ['chat' => ['id' => 123456]]],
         ]);
@@ -55,9 +60,15 @@ final class TelegramBotTest extends TestCase
             ->assertOk()->assertJsonPath('data.notifications_enabled', false);
 
         $this->app->make(TelegramUpdateHandler::class)->handle([
-            'message' => ['text' => '/notifications on', 'chat' => ['id' => 123456, 'type' => 'private']],
+            'message' => ['text' => '/notification on', 'chat' => ['id' => 123456, 'type' => 'private']],
         ]);
         $this->assertTrue($manager->refresh()->telegram_notifications_enabled);
+
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'callback_query' => ['id' => 'callback-2', 'data' => 'nt:off', 'message' => ['chat' => ['id' => 123456]]],
+        ]);
+        $this->assertFalse($manager->refresh()->telegram_notifications_enabled);
+        $this->assertSame('Done', $client->answers['callback-2']);
     }
 
     public function test_connection_link_requires_complete_bot_configuration(): void
