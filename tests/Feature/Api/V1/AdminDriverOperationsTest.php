@@ -63,6 +63,44 @@ final class AdminDriverOperationsTest extends TestCase
         $this->assertNotSoftDeleted('cars', ['id' => $car->id]);
     }
 
+    public function test_manager_can_create_edit_and_delete_driver_with_login_and_cars(): void
+    {
+        $this->seed();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $cars = Car::query()->orderBy('id')->limit(2)->get();
+        $payload = [
+            'first_name' => 'Levon', 'last_name' => 'Sargsyan',
+            'phone' => '+37499123456', 'email' => 'levon.driver@example.com',
+            'password' => 'StrongPass123!', 'locale' => 'en',
+            'languages' => ['hy', 'en'], 'experience_years' => 8,
+            'license_number' => 'DRV-TEST-9001', 'rating' => 4.8,
+            'active' => true, 'preferred_car_id' => $cars[0]->id,
+            'car_ids' => $cars->pluck('id')->all(),
+        ];
+
+        $created = $this->actingAs($manager)->postJson('/api/v1/admin/directory/drivers', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.email', 'levon.driver@example.com')
+            ->assertJsonPath('data.car_ids.0', $cars[0]->id);
+        $driverId = (int) $created->json('data.id');
+        $driver = Driver::query()->findOrFail($driverId);
+        $this->assertDatabaseHas('users', ['id' => $driver->user_id, 'role' => UserRole::Driver->value, 'is_active' => true]);
+
+        $this->actingAs($manager)->patchJson("/api/v1/admin/directory/drivers/{$driverId}", [
+            'last_name' => 'Hakobyan', 'active' => false,
+            'preferred_car_id' => $cars[1]->id, 'car_ids' => [$cars[1]->id],
+        ])->assertOk()
+            ->assertJsonPath('data.last_name', 'Hakobyan')
+            ->assertJsonPath('data.active', false)
+            ->assertJsonPath('data.preferred_car_id', $cars[1]->id);
+        $this->assertDatabaseHas('users', ['id' => $driver->user_id, 'last_name' => 'Hakobyan', 'is_active' => false]);
+        $this->assertDatabaseHas('driver_cars', ['driver_id' => $driverId, 'car_id' => $cars[1]->id]);
+
+        $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/drivers/{$driverId}")->assertNoContent();
+        $this->assertSoftDeleted('drivers', ['id' => $driverId]);
+        $this->assertDatabaseHas('users', ['id' => $driver->user_id, 'is_active' => false]);
+    }
+
     public function test_operations_dashboard_directories_and_assignment_availability_are_available_to_managers(): void
     {
         $this->seed();

@@ -6,17 +6,21 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CarCategory;
 use App\Enums\CurrencyCode;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpsertDestinationRequest;
+use App\Http\Requests\Admin\UpsertDriverRequest;
 use App\Http\Requests\Admin\UpsertTourRequest;
 use App\Http\Resources\Admin\AdminCarResource;
 use App\Http\Resources\Admin\AdminDestinationResource;
+use App\Http\Resources\Admin\AdminDriverResource;
 use App\Http\Resources\Admin\AdminTourResource;
 use App\Models\Car;
 use App\Models\Destination;
 use App\Models\Driver;
 use App\Models\Tour;
 use App\Models\TourCategory;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -148,7 +152,112 @@ final class DirectoryController extends Controller
 
     public function drivers(Request $request): JsonResponse
     {
-        return response()->json(Driver::query()->with('cars:id,brand,model')->orderBy('first_name')->paginate($this->perPage($request)));
+        $drivers = Driver::query()->with(['user', 'cars', 'media'])->orderBy('first_name')->paginate($this->perPage($request));
+
+        return response()->json($drivers->through(fn (Driver $driver): array => (new AdminDriverResource($driver))->resolve($request)));
+    }
+
+    public function storeDriver(UpsertDriverRequest $request, AuditLogger $audit): JsonResponse
+    {
+        $driver = DB::transaction(function () use ($request): Driver {
+            $data = $request->validated();
+            $active = (bool) ($data['active'] ?? true);
+            $user = User::query()->create([
+                'name' => trim("{$data['first_name']} {$data['last_name']}"),
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'password' => $data['password'],
+                'role' => UserRole::Driver,
+                'locale' => $data['locale'] ?? 'en',
+                'is_active' => $active,
+            ]);
+            $driver = Driver::query()->create([
+                'user_id' => $user->id,
+                'preferred_car_id' => $data['preferred_car_id'] ?? null,
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'],
+                'languages' => $data['languages'] ?? [],
+                'experience_years' => $data['experience_years'] ?? 0,
+                'license_number' => $data['license_number'],
+                'active' => $active,
+                'rating' => $data['rating'] ?? null,
+            ]);
+            $carIds = collect($data['car_ids'] ?? [])->when(
+                isset($data['preferred_car_id']),
+                fn ($ids) => $ids->push($data['preferred_car_id']),
+            )->unique()->values()->all();
+            $driver->cars()->sync($carIds);
+
+            return $driver;
+        });
+        $audit->record($request->user(), 'drivers.created', $driver, [], $driver->toArray(), $request->ip());
+
+        return response()->json(['data' => (new AdminDriverResource($driver->load(['user', 'cars', 'media'])))->resolve($request)], 201);
+    }
+
+    public function updateDriver(UpsertDriverRequest $request, Driver $driver, AuditLogger $audit): JsonResponse
+    {
+        $old = $driver->load(['user', 'cars'])->toArray();
+        DB::transaction(function () use ($request, $driver): void {
+            $data = $request->validated();
+            $firstName = $data['first_name'] ?? $driver->first_name;
+            $lastName = $data['last_name'] ?? $driver->last_name;
+            $phone = $data['phone'] ?? $driver->phone;
+            $email = $data['email'] ?? $driver->email;
+            $active = (bool) ($data['active'] ?? $driver->active);
+            $userChanges = [
+                'name' => trim("{$firstName} {$lastName}"),
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'phone' => $phone,
+                'email' => $email,
+                'is_active' => $active,
+            ];
+            if (isset($data['locale'])) {
+                $userChanges['locale'] = $data['locale'];
+            }
+            if (filled($data['password'] ?? null)) {
+                $userChanges['password'] = $data['password'];
+            }
+            $driver->user()->update($userChanges);
+            $driver->update(Arr::only($data, [
+                'preferred_car_id', 'first_name', 'last_name', 'phone', 'email', 'languages',
+                'experience_years', 'license_number', 'active', 'rating',
+            ]));
+            if (array_key_exists('car_ids', $data)) {
+                $carIds = collect($data['car_ids']);
+                if (isset($data['preferred_car_id'])) {
+                    $carIds->push($data['preferred_car_id']);
+                }
+                $driver->cars()->sync($carIds->unique()->values()->all());
+            } elseif (isset($data['preferred_car_id'])) {
+                $driver->cars()->syncWithoutDetaching([$data['preferred_car_id']]);
+            }
+        });
+        $driver->refresh()->load(['user', 'cars', 'media']);
+        $audit->record($request->user(), 'drivers.updated', $driver, $old, $driver->toArray(), $request->ip());
+
+        return response()->json(['data' => (new AdminDriverResource($driver))->resolve($request)]);
+    }
+
+    public function destroyDriver(Request $request, Driver $driver, AuditLogger $audit): JsonResponse
+    {
+        if ($driver->bookings()->blockingAvailability()->where('planned_end_at', '>', now())->exists()) {
+            return response()->json(['message' => 'This driver has upcoming assigned trips. Reassign them before deleting the driver.'], 422);
+        }
+        $old = $driver->load('user')->toArray();
+        DB::transaction(function () use ($driver): void {
+            $driver->user?->tokens()->delete();
+            $driver->user?->update(['is_active' => false]);
+            $driver->delete();
+        });
+        $audit->record($request->user(), 'drivers.deleted', $driver, $old, [], $request->ip());
+
+        return response()->json([], 204);
     }
 
     public function update(Request $request, string $type, int $id, AuditLogger $audit): JsonResponse

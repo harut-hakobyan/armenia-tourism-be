@@ -93,6 +93,9 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/directory/cars', [DirectoryController::class, 'storeCar']);
         Route::delete('/directory/cars/{car}', [DirectoryController::class, 'destroyCar']);
         Route::get('/directory/drivers', [DirectoryController::class, 'drivers']);
+        Route::post('/directory/drivers', [DirectoryController::class, 'storeDriver']);
+        Route::patch('/directory/drivers/{driver}', [DirectoryController::class, 'updateDriver']);
+        Route::delete('/directory/drivers/{driver}', [DirectoryController::class, 'destroyDriver']);
         Route::patch('/directory/{type}/{id}', [DirectoryController::class, 'update'])
             ->whereIn('type', ['cars', 'drivers']);
         Route::get('/bookings/calendar', [BookingOperationsController::class, 'calendar']);
