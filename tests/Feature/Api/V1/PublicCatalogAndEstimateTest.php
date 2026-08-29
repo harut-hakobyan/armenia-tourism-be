@@ -6,6 +6,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Car;
 use App\Models\Destination;
+use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -151,6 +152,26 @@ final class PublicCatalogAndEstimateTest extends TestCase
             $custom->json('data.estimated_duration_minutes'),
         );
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
+    }
+
+    public function test_group_departure_with_deleted_car_is_hidden_and_returns_validation_error(): void
+    {
+        $this->seed();
+        $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
+        $departure = GroupTourDeparture::query()->where('tour_id', $tour->id)->firstOrFail();
+        $departure->car()->firstOrFail()->delete();
+
+        $this->getJson("/api/v1/tours/{$tour->slug}?locale=en")
+            ->assertOk()
+            ->assertJsonCount(0, 'data.upcoming_departures');
+
+        $this->postJson('/api/v1/pricing/tours/estimate', [
+            'tour_id' => $tour->id,
+            'group_tour_departure_id' => $departure->id,
+            'booking_date' => $departure->starts_at->toDateString(),
+            'passengers' => 2,
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.group_tour_departure_id.0', 'The selected group departure does not have an available vehicle.');
     }
 
     public function test_estimate_matches_booking_and_invalid_capacity_is_a_safe_validation_error(): void

@@ -103,7 +103,14 @@ final class CreateBookingAction
             if (! $carId) {
                 throw new BookingUnavailableException('A car is required for this booking.');
             }
-            $car = Car::query()->lockForUpdate()->findOrFail($carId);
+            $car = Car::query()->where('active', true)->where('available_for_booking', true)
+                ->lockForUpdate()->find($carId);
+            if (! $car) {
+                throw new BookingUnavailableException('The selected departure does not have an available car.');
+            }
+            if ($departure && $departure->capacity > $car->passenger_capacity) {
+                throw new BookingUnavailableException('The selected departure vehicle does not have enough passenger capacity.');
+            }
             $startsAt = $departure?->starts_at ?? $data->startsAt;
             $endsAt = $departure?->ends_at ?? $this->plannedEnd($data, $tour, $route);
 

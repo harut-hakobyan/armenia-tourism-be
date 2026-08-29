@@ -36,7 +36,20 @@ final class GroupTourDeparture extends Model
     {
         return $query->where('active', true)
             ->where('status', GroupTourDepartureStatus::Scheduled)
-            ->where('starts_at', '>', now());
+            ->where('starts_at', '>', now())
+            ->whereHas('car', fn (Builder $car): Builder => $car
+                ->where('active', true)
+                ->where('available_for_booking', true));
+    }
+
+    public function isBookable(): bool
+    {
+        return $this->active
+            && $this->status === GroupTourDepartureStatus::Scheduled
+            && $this->starts_at->isFuture()
+            && $this->car !== null
+            && $this->car->active
+            && $this->car->available_for_booking;
     }
 
     public function tour(): BelongsTo

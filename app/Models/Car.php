@@ -58,4 +58,9 @@ final class Car extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function groupTourDepartures(): HasMany
+    {
+        return $this->hasMany(GroupTourDeparture::class);
+    }
 }

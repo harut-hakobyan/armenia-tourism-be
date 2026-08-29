@@ -83,6 +83,10 @@ final class ServiceEstimateService
         ?string $promoCode = null,
         ?string $customerEmail = null,
     ): array {
+        $car = $departure->car;
+        if (! $car || ! $car->active || ! $car->available_for_booking) {
+            throw new \DomainException('The selected group departure does not have an available vehicle.');
+        }
         $price = $this->pricing->calculateGroupTour(
             $tour,
             $departure,
@@ -96,7 +100,7 @@ final class ServiceEstimateService
             'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
             'tour_format' => 'group',
             'group_tour_departure_id' => $departure->id,
-            'car' => ['id' => $departure->car->id, 'name' => "{$departure->car->brand} {$departure->car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
             'booking_date' => $departure->starts_at->toDateString(),
             'starts_at' => $departure->starts_at->toIso8601String(),
             'meeting_point' => $departure->meeting_point,

@@ -183,6 +183,11 @@ final class DirectoryController extends Controller
 
     public function destroyCar(Request $request, Car $car, AuditLogger $audit): JsonResponse
     {
+        if ($car->groupTourDepartures()->where('active', true)->where('starts_at', '>', now())->exists()) {
+            return response()->json([
+                'message' => 'This car is assigned to future group tour departures. Reassign those departures before deleting it.',
+            ], 422);
+        }
         $old = $car->toArray();
         $car->delete();
         $audit->record($request->user(), 'cars.deleted', $car, $old, [], $request->ip());

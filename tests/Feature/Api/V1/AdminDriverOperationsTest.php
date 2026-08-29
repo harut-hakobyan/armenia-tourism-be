@@ -50,6 +50,19 @@ final class AdminDriverOperationsTest extends TestCase
         $this->assertSoftDeleted('cars', ['id' => $carId]);
     }
 
+    public function test_car_assigned_to_future_group_departures_cannot_be_deleted(): void
+    {
+        $this->seed();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $car = Car::query()->whereHas('groupTourDepartures', fn ($query) => $query->where('starts_at', '>', now()))->firstOrFail();
+
+        $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/cars/{$car->id}")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This car is assigned to future group tour departures. Reassign those departures before deleting it.');
+
+        $this->assertNotSoftDeleted('cars', ['id' => $car->id]);
+    }
+
     public function test_operations_dashboard_directories_and_assignment_availability_are_available_to_managers(): void
     {
         $this->seed();

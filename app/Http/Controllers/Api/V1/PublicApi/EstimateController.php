@@ -32,10 +32,15 @@ final class EstimateController extends Controller
             if (! isset($data['group_tour_departure_id'])) {
                 throw ValidationException::withMessages(['group_tour_departure_id' => 'Choose a group tour departure.']);
             }
-            $departure = GroupTourDeparture::query()->bookable()
+            $departure = GroupTourDeparture::query()
                 ->where('tour_id', $tour->id)
                 ->with(['bookings', 'car'])
                 ->findOrFail($data['group_tour_departure_id']);
+            if (! $departure->isBookable()) {
+                throw ValidationException::withMessages([
+                    'group_tour_departure_id' => 'The selected group departure does not have an available vehicle.',
+                ]);
+            }
             if ($departure->remainingSeats() < (int) $data['passengers']) {
                 throw ValidationException::withMessages(['passengers' => 'Not enough seats remain for this departure.']);
             }
