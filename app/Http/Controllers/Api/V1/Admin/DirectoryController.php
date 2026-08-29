@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\CarCategory;
+use App\Enums\CurrencyCode;
 use App\Http\Controllers\Controller;
 use App\Models\Car;
 use App\Models\Destination;
@@ -13,6 +15,7 @@ use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 final class DirectoryController extends Controller
 {
@@ -28,7 +31,15 @@ final class DirectoryController extends Controller
 
     public function cars(Request $request): JsonResponse
     {
-        return response()->json(Car::query()->orderBy('brand')->paginate($this->perPage($request)));
+        return response()->json(Car::query()->with('media')->orderBy('brand')->paginate($this->perPage($request)));
+    }
+
+    public function storeCar(Request $request, AuditLogger $audit): JsonResponse
+    {
+        $car = Car::query()->create($this->validateCar($request));
+        $audit->record($request->user(), 'cars.created', $car, [], $car->toArray(), $request->ip());
+
+        return response()->json(['data' => $car->load('media')], 201);
     }
 
     public function drivers(Request $request): JsonResponse
@@ -39,6 +50,15 @@ final class DirectoryController extends Controller
     public function update(Request $request, string $type, int $id, AuditLogger $audit): JsonResponse
     {
         $model = $this->model($type, $id);
+        if ($model instanceof Car) {
+            $changes = $this->validateCar($request, $model);
+            $old = $model->only(array_keys($changes));
+            $model->update($changes);
+            $audit->record($request->user(), 'cars.updated', $model, $old, $model->only(array_keys($changes)), $request->ip());
+
+            return response()->json(['data' => $model->refresh()->load('media')]);
+        }
+
         $validated = $request->validate([
             'active' => ['sometimes', 'boolean'],
             'featured' => ['sometimes', 'boolean'],
@@ -56,6 +76,42 @@ final class DirectoryController extends Controller
         $audit->record($request->user(), "{$type}.visibility_updated", $model, $old, $model->only(array_keys($changes)), $request->ip());
 
         return response()->json(['data' => $model->refresh()]);
+    }
+
+    public function destroyCar(Request $request, Car $car, AuditLogger $audit): JsonResponse
+    {
+        $old = $car->toArray();
+        $car->delete();
+        $audit->record($request->user(), 'cars.deleted', $car, $old, [], $request->ip());
+
+        return response()->json([], 204);
+    }
+
+    /** @return array<string, mixed> */
+    private function validateCar(Request $request, ?Car $car = null): array
+    {
+        $presence = $car === null ? 'required' : 'sometimes';
+
+        return $request->validate([
+            'brand' => [$presence, 'string', 'max:100'],
+            'model' => [$presence, 'string', 'max:100'],
+            'year' => [$presence, 'integer', 'min:1980', 'max:'.(now()->year + 1)],
+            'plate_number' => [$presence, 'string', 'max:32', Rule::unique('cars', 'plate_number')->ignore($car)],
+            'color' => ['nullable', 'string', 'max:50'],
+            'category' => [$presence, Rule::enum(CarCategory::class)],
+            'passenger_capacity' => [$presence, 'integer', 'min:1', 'max:50'],
+            'luggage_capacity' => [$presence, 'integer', 'min:0', 'max:50'],
+            'transmission' => ['nullable', 'string', 'max:20'],
+            'air_conditioning' => [$presence, 'boolean'],
+            'wifi' => [$presence, 'boolean'],
+            'child_seat_available' => [$presence, 'boolean'],
+            'base_price_minor' => [$presence, 'integer', 'min:0'],
+            'price_per_km_minor' => [$presence, 'integer', 'min:0'],
+            'price_per_hour_minor' => [$presence, 'integer', 'min:0'],
+            'currency' => [$presence, Rule::enum(CurrencyCode::class)],
+            'active' => [$presence, 'boolean'],
+            'available_for_booking' => [$presence, 'boolean'],
+        ]);
     }
 
     private function perPage(Request $request): int

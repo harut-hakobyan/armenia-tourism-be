@@ -22,6 +22,34 @@ final class AdminDriverOperationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_manager_can_create_edit_and_soft_delete_cars(): void
+    {
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $payload = [
+            'brand' => 'Volkswagen', 'model' => 'Crafter', 'year' => 2025,
+            'plate_number' => 'AMT-777', 'color' => 'Silver', 'category' => 'minivan',
+            'passenger_capacity' => 12, 'luggage_capacity' => 10, 'transmission' => 'automatic',
+            'air_conditioning' => true, 'wifi' => true, 'child_seat_available' => true,
+            'base_price_minor' => 15000, 'price_per_km_minor' => 120,
+            'price_per_hour_minor' => 2500, 'currency' => 'EUR',
+            'active' => true, 'available_for_booking' => true,
+        ];
+
+        $created = $this->actingAs($manager)->postJson('/api/v1/admin/directory/cars', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.plate_number', 'AMT-777');
+        $carId = (int) $created->json('data.id');
+
+        $this->actingAs($manager)->patchJson("/api/v1/admin/directory/cars/{$carId}", [
+            'color' => 'Black', 'passenger_capacity' => 14,
+        ])->assertOk()->assertJsonPath('data.color', 'Black');
+        $this->assertDatabaseHas('cars', ['id' => $carId, 'passenger_capacity' => 14]);
+
+        $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/cars/{$carId}")
+            ->assertNoContent();
+        $this->assertSoftDeleted('cars', ['id' => $carId]);
+    }
+
     public function test_operations_dashboard_directories_and_assignment_availability_are_available_to_managers(): void
     {
         $this->seed();
