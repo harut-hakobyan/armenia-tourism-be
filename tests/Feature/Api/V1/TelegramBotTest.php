@@ -10,6 +10,7 @@ use App\Enums\UserRole;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Booking;
 use App\Models\Car;
+use App\Models\Driver;
 use App\Models\Tour;
 use App\Models\User;
 use App\Services\Telegram\TelegramUpdateHandler;
@@ -55,6 +56,33 @@ final class TelegramBotTest extends TestCase
         $this->assertSame(BookingStatus::Confirmed, $booking->refresh()->booking_status);
         $this->assertNotEmpty($client->messages);
         $this->assertSame('Done', $client->answers['callback-1']);
+        $confirmedMessage = $client->messages[array_key_last($client->messages)];
+        $buttonLabels = collect($confirmedMessage['keyboard'])->flatten(1)->pluck('text');
+        $this->assertTrue($buttonLabels->contains('Assign car & driver'));
+        $this->assertFalse($buttonLabels->contains('No show'));
+
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'callback_query' => ['id' => 'callback-assign', 'data' => "bc:assign:{$booking->id}", 'message' => ['chat' => ['id' => 123456]]],
+        ]);
+        $vehiclePicker = $client->messages[array_key_last($client->messages)];
+        $this->assertStringContainsString('Step 1 of 2', $vehiclePicker['text']);
+        $driverCarId = Driver::query()->where('active', true)->firstOrFail()->cars()->firstOrFail()->id;
+        $carCallback = collect($vehiclePicker['keyboard'])->flatten(1)->pluck('callback_data')
+            ->first(fn ($data) => str_ends_with((string) $data, ":{$driverCarId}"));
+        $this->assertNotNull($carCallback);
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'callback_query' => ['id' => 'callback-car', 'data' => $carCallback, 'message' => ['chat' => ['id' => 123456]]],
+        ]);
+        $this->assertStringContainsString('Step 2 of 2', $client->messages[array_key_last($client->messages)]['text']);
+
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'message' => ['text' => '/menu', 'chat' => ['id' => 123456, 'type' => 'private']],
+        ]);
+        $this->assertStringNotContainsString('/bookings', $client->messages[array_key_last($client->messages)]['text']);
+        $this->app->make(TelegramUpdateHandler::class)->handle([
+            'message' => ['text' => '/help', 'chat' => ['id' => 123456, 'type' => 'private']],
+        ]);
+        $this->assertStringContainsString('/bookings', $client->messages[array_key_last($client->messages)]['text']);
 
         $this->actingAs($manager)->patchJson('/api/v1/telegram/preferences', ['notifications_enabled' => false])
             ->assertOk()->assertJsonPath('data.notifications_enabled', false);

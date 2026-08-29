@@ -75,7 +75,9 @@ final class TelegramUpdateHandler
 
             return;
         }
-        if (preg_match('/^\/(?:help|start|menu)(?:@\w+)?$/i', $text)) {
+        if (preg_match('/^\/help(?:@\w+)?$/i', $text)) {
+            $this->showHelp($user, $chatId);
+        } elseif (preg_match('/^\/(?:start|menu)(?:@\w+)?$/i', $text)) {
             $this->showMenu($user, $chatId);
         } elseif (preg_match('/^\/(?:notifications?|alerts?)(?:@\w+)?\s+(on|off)$/i', $text, $matches)) {
             $enabled = strtolower($matches[1]) === 'on';
@@ -125,12 +127,15 @@ final class TelegramUpdateHandler
     {
         $this->operations($user);
         $booking = Booking::query()->findOrFail((int) ($parts[2] ?? 0));
+        if (($parts[1] ?? '') === 'assign') {
+            $this->availableCars($chatId, $booking);
+
+            return;
+        }
         match ($parts[1] ?? '') {
             'confirm' => $this->bookingStatuses->transition($booking, BookingStatus::Confirmed, $user, 'Confirmed from Telegram.'),
             'cancel' => $this->bookingStatuses->transition($booking, BookingStatus::Cancelled, $user, 'Cancelled from Telegram.'),
-            'no_show' => $this->bookingStatuses->transition($booking, BookingStatus::NoShow, $user, 'Marked as no-show from Telegram.'),
             'detail' => null,
-            'assign' => $this->availableCars($chatId, $booking),
             default => throw new \RuntimeException('Unknown booking action.'),
         };
         $this->adminBooking($chatId, $booking->refresh());
@@ -138,9 +143,27 @@ final class TelegramUpdateHandler
 
     private function availableCars(string $chatId, Booking $booking): void
     {
-        $rows = $this->availability->getAvailableCars($booking->starts_at, $booking->planned_end_at, $booking->passengers, $booking->id)
-            ->take(10)->map(fn (Car $car) => [['text' => "{$car->brand} {$car->model}", 'callback_data' => "ac:{$booking->id}:{$car->id}"]])->values()->all();
-        $this->client->sendMessage($chatId, '<b>Select an available car</b>', $rows);
+        $cars = $this->availability->getAvailableCars($booking->starts_at, $booking->planned_end_at, $booking->passengers, $booking->id)
+            ->take(10)->values();
+        if ($cars->isEmpty()) {
+            $this->client->sendMessage($chatId, '<b>No vehicles are available</b> for this booking time.', [
+                [['text' => 'Back to booking', 'callback_data' => "bc:detail:{$booking->id}"]],
+            ]);
+
+            return;
+        }
+        $details = $cars->map(fn (Car $car, int $index): string => ($index + 1).'. <b>'.e("{$car->brand} {$car->model}").'</b>'
+            .' · '.e($car->plate_number)."\n   ".e(ucfirst($car->category->value)).' · '.e((string) $car->passenger_capacity).' passengers')->implode("\n\n");
+        $rows = $cars->map(fn (Car $car, int $index): array => [[
+            'text' => ($index + 1).". {$car->brand} {$car->model}",
+            'callback_data' => "ac:{$booking->id}:{$car->id}",
+        ]])->all();
+        $rows[] = [['text' => 'Back to booking', 'callback_data' => "bc:detail:{$booking->id}"]];
+        $this->client->sendMessage(
+            $chatId,
+            "<b>Assign car &amp; driver</b>\nBooking: <b>".e($booking->booking_number)."</b>\n\n<b>Step 1 of 2 · Choose a vehicle</b>\n\n{$details}",
+            $rows,
+        );
     }
 
     /** @param list<string> $parts */
@@ -149,9 +172,35 @@ final class TelegramUpdateHandler
         $this->operations($user);
         $booking = Booking::query()->findOrFail((int) ($parts[1] ?? 0));
         $carId = (int) ($parts[2] ?? 0);
-        $rows = $this->availability->getAvailableDrivers($booking->starts_at, $booking->planned_end_at, $carId, $booking->id)
-            ->take(10)->map(fn (Driver $driver) => [['text' => "{$driver->first_name} {$driver->last_name}", 'callback_data' => "ad:{$booking->id}:{$carId}:{$driver->id}"]])->values()->all();
-        $this->client->sendMessage($chatId, '<b>Select an available driver</b>', $rows);
+        $car = Car::query()->findOrFail($carId);
+        $drivers = $this->availability->getAvailableDrivers($booking->starts_at, $booking->planned_end_at, $carId, $booking->id)
+            ->take(10)->values();
+        if ($drivers->isEmpty()) {
+            $this->client->sendMessage(
+                $chatId,
+                '<b>No authorized drivers are available</b> for '.e("{$car->brand} {$car->model}").'.',
+                [[['text' => 'Choose another vehicle', 'callback_data' => "bc:assign:{$booking->id}"]]],
+            );
+
+            return;
+        }
+        $details = $drivers->map(function (Driver $driver, int $index): string {
+            $languages = implode(', ', array_map('strtoupper', $driver->languages ?? []));
+            $rating = $driver->rating === null ? 'Not rated' : 'Rating '.number_format((float) $driver->rating, 1).'/5';
+
+            return ($index + 1).'. <b>'.e("{$driver->first_name} {$driver->last_name}")."</b>\n   ".e($rating)
+                .($languages === '' ? '' : ' · '.e($languages));
+        })->implode("\n\n");
+        $rows = $drivers->map(fn (Driver $driver, int $index): array => [[
+            'text' => ($index + 1).". {$driver->first_name} {$driver->last_name}",
+            'callback_data' => "ad:{$booking->id}:{$carId}:{$driver->id}",
+        ]])->all();
+        $rows[] = [['text' => 'Choose another vehicle', 'callback_data' => "bc:assign:{$booking->id}"]];
+        $this->client->sendMessage(
+            $chatId,
+            "<b>Assign car &amp; driver</b>\nBooking: <b>".e($booking->booking_number)."</b>\nVehicle: <b>".e("{$car->brand} {$car->model}")."</b>\n\n<b>Step 2 of 2 · Choose a driver</b>\n\n{$details}",
+            $rows,
+        );
     }
 
     /** @param list<string> $parts */
@@ -173,7 +222,6 @@ final class TelegramUpdateHandler
     private function driverStatus(User $user, string $chatId, int $bookingId, string $status): void
     {
         $driver = $this->driver($user);
-        $booking = Booking::query()->where('driver_id', $driver->id)->findOrFail($bookingId);
         $updated = $this->driverStatuses->transition($booking, $driver, DriverTripStatus::from($status), 'Updated from Telegram.');
         $this->driverBooking($chatId, $updated);
     }
@@ -186,22 +234,19 @@ final class TelegramUpdateHandler
             ],
             BookingStatus::Confirmed => [
                 [['text' => 'Assign car & driver', 'callback_data' => "bc:assign:{$booking->id}"]],
-                [['text' => 'No show', 'callback_data' => "bc:no_show:{$booking->id}"], ['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
+                [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
             ],
             BookingStatus::Assigned => [
-                [['text' => 'No show', 'callback_data' => "bc:no_show:{$booking->id}"], ['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
+                [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
             ],
             BookingStatus::DriverOnTheWay => [
                 [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
-            ],
-            BookingStatus::DriverArrived => [
-                [['text' => 'No show', 'callback_data' => "bc:no_show:{$booking->id}"]],
             ],
             default => [],
         };
         $buttons[] = [
             ['text' => 'Refresh details', 'callback_data' => "bc:detail:{$booking->id}"],
-            ['text' => 'Main menu', 'callback_data' => 'menu:help'],
+            ['text' => 'Main menu', 'callback_data' => 'menu:home'],
         ];
         $this->client->sendMessage($chatId, $this->notifier->summary($booking->loadMissing(['tour.translations'])), $buttons);
     }
@@ -217,18 +262,27 @@ final class TelegramUpdateHandler
             default => null,
         };
         $buttons = $next ? [[['text' => 'Update: '.str_replace('_', ' ', $next->value), 'callback_data' => "ds:{$booking->id}:{$next->value}"]]] : [];
-        $buttons[] = [['text' => 'Main menu', 'callback_data' => 'menu:help']];
+        $buttons[] = [['text' => 'Main menu', 'callback_data' => 'menu:home']];
         $this->client->sendMessage($chatId, $this->notifier->summary($booking->loadMissing(['tour.translations'])), $buttons);
     }
 
     private function showMenu(User $user, string $chatId): void
+    {
+        $this->client->sendMessage(
+            $chatId,
+            '<b>Available actions</b> · choose an option below.',
+            $this->mainMenu($user),
+        );
+    }
+
+    private function showHelp(User $user, string $chatId): void
     {
         $primaryCommand = $user->role === UserRole::Driver
             ? '/trips - upcoming assigned trips'
             : '/bookings - recent bookings';
         $this->client->sendMessage(
             $chatId,
-            "<b>Available actions</b>\n{$primaryCommand}\n/notification on - enable alerts\n/notification off - pause alerts\n/menu - show these buttons",
+            "<b>Manual commands</b>\n{$primaryCommand}\n/notification on - enable alerts\n/notification off - pause alerts\n/menu - show action buttons\n/help - show this guide",
             $this->mainMenu($user),
         );
     }
@@ -243,7 +297,7 @@ final class TelegramUpdateHandler
         if ($user->role === UserRole::Driver) {
             return [
                 [['text' => 'My upcoming trips', 'callback_data' => 'menu:trips']],
-                [$notificationButton, ['text' => 'Help', 'callback_data' => 'menu:help']],
+                [$notificationButton],
             ];
         }
 
@@ -255,14 +309,15 @@ final class TelegramUpdateHandler
             [
                 ['text' => "Today's bookings", 'callback_data' => 'menu:today'],
             ],
-            [$notificationButton, ['text' => 'Help', 'callback_data' => 'menu:help']],
+            [$notificationButton],
         ];
     }
 
     private function menuAction(User $user, string $chatId, string $action): void
     {
         match ($action) {
-            'help' => $this->showMenu($user, $chatId),
+            'home' => $this->showMenu($user, $chatId),
+            'help' => $this->showHelp($user, $chatId),
             'trips' => $this->driverTrips($user, $chatId),
             'recent', 'pending', 'today' => $this->adminBookings($user, $chatId, $action),
             default => throw new \RuntimeException('Unknown menu action.'),
