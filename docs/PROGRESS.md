@@ -14,6 +14,7 @@ Post-MVP enhancement completed: scheduled small-group tours alongside the origin
 - Multiple customer bookings can safely share one departure; overselling is prevented with row locking
 - Two multilingual sample group tours and twelve upcoming departures
 - Public Private/Group filters, format badges, per-person labels, departure selection, and group booking UX
+- Group-first public positioning across the hero, primary navigation, featured tours, catalog default, booking ordering, SEO titles, and recommended API order; private tours remain a secondary option
 
 1. Laravel backend foundation - complete
 2. Catalog, fleet, translations, and seed data - complete

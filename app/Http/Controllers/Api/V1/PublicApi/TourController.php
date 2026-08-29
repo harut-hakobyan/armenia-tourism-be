@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\PublicApi;
 
 use App\Enums\BookingStatus;
+use App\Enums\TourFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicApi\ListToursRequest;
 use App\Http\Resources\TourResource;
@@ -75,7 +76,10 @@ final class TourController extends Controller
             'price_asc' => $query->orderBy('starting_price_minor'),
             'price_desc' => $query->orderByDesc('starting_price_minor'),
             'duration_asc' => $query->orderBy('duration_minutes'),
-            default => $query->orderByDesc('featured')->orderBy('sort_order'),
+            default => $query
+                ->orderByRaw('CASE WHEN format = ? THEN 0 ELSE 1 END', [TourFormat::Group->value])
+                ->orderByDesc('featured')
+                ->orderBy('sort_order'),
         };
 
         return TourResource::collection(

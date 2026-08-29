@@ -62,6 +62,10 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.0.slug', 'garni-geghard')
             ->assertJsonPath('data.0.starting_price.pricing_type', 'per_car');
 
+        $this->getJson('/api/v1/tours?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.0.format', 'group');
+
         $this->getJson('/api/v1/tour-categories/nature/tours?locale=en&format=private')
             ->assertOk()
             ->assertJsonCount(2, 'data')
