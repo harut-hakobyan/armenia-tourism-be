@@ -20,9 +20,10 @@ final class TelegramConnectionController extends Controller
     {
         abort_if(! $this->configured(), 503, 'Telegram bot is not configured yet. Add the bot credentials and restart the backend.');
         $token = Str::random(32);
+        $expiresAt = now('UTC')->addMinutes(15);
         $request->user()->update([
             'telegram_link_token_hash' => hash('sha256', $token),
-            'telegram_link_token_expires_at' => now()->addMinutes(15),
+            'telegram_link_token_expires_at' => $expiresAt,
         ]);
         $username = ltrim((string) config('tourism.telegram.bot_username'), '@');
 
@@ -30,7 +31,7 @@ final class TelegramConnectionController extends Controller
             ...$this->status($request),
             'link_url' => $username === '' ? null : "https://t.me/{$username}?start={$token}",
             'link_code' => $token,
-            'expires_at' => now()->addMinutes(15)->toIso8601String(),
+            'expires_at' => $expiresAt->toIso8601String(),
         ]]);
     }
 

@@ -37,7 +37,7 @@ final class TelegramBotTest extends TestCase
             ->assertOk()->assertJsonPath('data.connected', false);
         $code = (string) $link->json('data.link_code');
         $this->app->make(TelegramUpdateHandler::class)->handle([
-            'message' => ['text' => "/start {$code}", 'chat' => ['id' => 123456, 'type' => 'private'], 'from' => ['username' => 'manager_one']],
+            'message' => ['text' => $code, 'chat' => ['id' => 123456, 'type' => 'private'], 'from' => ['username' => 'manager_one']],
         ]);
         $this->assertDatabaseHas('users', ['id' => $manager->id, 'telegram_chat_id' => '123456', 'telegram_username' => 'manager_one']);
 

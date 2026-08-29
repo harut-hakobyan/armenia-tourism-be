@@ -47,9 +47,9 @@ final class TelegramUpdateHandler
             return;
         }
         $text = trim((string) ($message['text'] ?? ''));
-        if (preg_match('/^\/start(?:@\w+)?\s+([A-Za-z0-9]+)$/', $text, $matches)) {
+        if (preg_match('/^(?:\/start(?:@\w+)?\s+)?([A-Za-z0-9]{32})$/', $text, $matches)) {
             $user = User::query()->where('telegram_link_token_hash', hash('sha256', $matches[1]))
-                ->where('telegram_link_token_expires_at', '>', now())->where('is_active', true)->first();
+                ->where('telegram_link_token_expires_at', '>', now('UTC'))->where('is_active', true)->first();
             if (! $user || ! $user->hasAnyRole(UserRole::Admin, UserRole::Manager, UserRole::Driver)) {
                 $this->client->sendMessage($chatId, 'This link is invalid or expired. Generate a new link in your account.');
 
@@ -67,7 +67,7 @@ final class TelegramUpdateHandler
         }
         $user = $this->user($chatId);
         if (! $user) {
-            $this->client->sendMessage($chatId, 'Connect Telegram from your authenticated Armenia Journeys account first.');
+            $this->client->sendMessage($chatId, 'Open Telegram from your Armenia Journeys account and press the Start button. A plain /start command cannot connect an account.');
 
             return;
         }
