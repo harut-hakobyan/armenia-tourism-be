@@ -1,79 +1,38 @@
 name: Deploy Backend
 
-
-
 on:
-
   push:
-
     branches:
-
       - master
-
   workflow_dispatch:
 
-
-
 jobs:
-
   deploy:
-
     runs-on: ubuntu-latest
 
-
-
     steps:
-
       - name: Deploy backend
-
         uses: appleboy/ssh-action@v1.2.5
-
         with:
-
           host: ${{ secrets.HOST }}
-
           username: ${{ secrets.USERNAME }}
-
           key: ${{ secrets.SSH_KEY }}
-
           port: ${{ secrets.PORT }}
-
           script: |
-
             set -e
-
-
 
             cd /home/ubuntu/armenia-tourism/armenia-tourism-be
 
-
-
             git fetch origin
-
             git reset --hard origin/master
-
-
 
             docker compose build app queue scheduler
 
-
-
-            docker compose up -d \
-
-              --force-recreate \
-
-              app queue scheduler nginx
-
-
+            docker compose up -d --force-recreate app queue scheduler nginx
 
             docker compose exec -T app php artisan migrate --force
-
             docker compose exec -T app php artisan optimize:clear
-
             docker compose exec -T app php artisan config:cache
-
             docker compose exec -T app php artisan route:cache
-
-
 
             docker image prune -f
