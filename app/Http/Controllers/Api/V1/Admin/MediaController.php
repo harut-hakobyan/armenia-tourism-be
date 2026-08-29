@@ -31,6 +31,9 @@ final class MediaController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:10000'],
         ]);
         $subject = $this->subject($type, $id);
+        $replacedMedia = in_array($validated['collection'], ['cover', 'profile'], true)
+            ? $subject->media()->where('collection', $validated['collection'])->get()
+            : collect();
         $file = $request->file('file');
         $disk = (string) config('filesystems.default', 'public');
         abort_if($disk === 'local', 500, 'FILESYSTEM_DISK must be a publicly addressable disk for website media.');
@@ -51,6 +54,10 @@ final class MediaController extends Controller
         } catch (\Throwable $exception) {
             Storage::disk($disk)->delete($path);
             throw $exception;
+        }
+        foreach ($replacedMedia as $replaced) {
+            Storage::disk($replaced->disk)->delete($replaced->path);
+            $replaced->delete();
         }
         $audit->record($request->user(), 'media.uploaded', $media, [], $media->toArray(), $request->ip());
 

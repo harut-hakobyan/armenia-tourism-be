@@ -120,4 +120,29 @@ final class CmsAndAuditTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.cover_image.id', $tourMedia->json('data.id'));
     }
+
+    public function test_uploading_a_new_cover_replaces_the_previous_cover(): void
+    {
+        Storage::fake('public');
+        config()->set('filesystems.default', 'public');
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $tour = Tour::query()->firstOrFail();
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true);
+
+        $first = $this->actingAs($admin)->postJson("/api/v1/admin/media/tours/{$tour->id}", [
+            'file' => UploadedFile::fake()->createWithContent('first.png', $png),
+            'collection' => 'cover',
+        ])->assertCreated();
+        $second = $this->actingAs($admin)->postJson("/api/v1/admin/media/tours/{$tour->id}", [
+            'file' => UploadedFile::fake()->createWithContent('second.png', $png),
+            'collection' => 'cover',
+        ])->assertCreated();
+
+        $this->assertSoftDeleted('media', ['id' => $first->json('data.id')]);
+        $this->assertDatabaseHas('media', ['id' => $second->json('data.id'), 'deleted_at' => null]);
+        $this->actingAs($admin)->getJson('/api/v1/admin/directory/tours?per_page=100')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $second->json('data.id')]);
+    }
 }

@@ -80,13 +80,20 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
         Route::get('/dashboard', DashboardController::class);
         Route::get('/directory/tours', [DirectoryController::class, 'tours']);
+        Route::post('/directory/tours', [DirectoryController::class, 'storeTour']);
+        Route::patch('/directory/tours/{tour}', [DirectoryController::class, 'updateTour']);
+        Route::delete('/directory/tours/{tour}', [DirectoryController::class, 'destroyTour']);
+        Route::get('/directory/tour-categories', [DirectoryController::class, 'tourCategories']);
         Route::get('/directory/destinations', [DirectoryController::class, 'destinations']);
+        Route::post('/directory/destinations', [DirectoryController::class, 'storeDestination']);
+        Route::patch('/directory/destinations/{destination}', [DirectoryController::class, 'updateDestination']);
+        Route::delete('/directory/destinations/{destination}', [DirectoryController::class, 'destroyDestination']);
         Route::get('/directory/cars', [DirectoryController::class, 'cars']);
         Route::post('/directory/cars', [DirectoryController::class, 'storeCar']);
         Route::delete('/directory/cars/{car}', [DirectoryController::class, 'destroyCar']);
         Route::get('/directory/drivers', [DirectoryController::class, 'drivers']);
         Route::patch('/directory/{type}/{id}', [DirectoryController::class, 'update'])
-            ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers']);
+            ->whereIn('type', ['cars', 'drivers']);
         Route::get('/bookings/calendar', [BookingOperationsController::class, 'calendar']);
         Route::get('/bookings', [BookingOperationsController::class, 'index']);
         Route::get('/bookings/{booking}', [BookingOperationsController::class, 'show']);
