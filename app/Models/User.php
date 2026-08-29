@@ -30,6 +30,11 @@ class User extends Authenticatable
         'password',
         'role',
         'locale',
+        'telegram_chat_id',
+        'telegram_username',
+        'telegram_notifications_enabled',
+        'telegram_link_token_hash',
+        'telegram_link_token_expires_at',
         'is_active',
     ];
 
@@ -55,6 +60,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'is_active' => 'boolean',
+            'telegram_notifications_enabled' => 'boolean',
+            'telegram_link_token_expires_at' => 'datetime',
         ];
     }
 

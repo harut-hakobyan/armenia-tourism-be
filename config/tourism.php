@@ -9,6 +9,12 @@ return [
         'admin_email' => env('BOOKING_ADMIN_EMAIL', 'admin@armeniatourism.local'),
     ],
 
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+    ],
+
     'routing' => [
         // MVP fallback only. Replace the bound contract with Mapbox/Google in production.
         'road_factor' => (float) env('ROUTE_ROAD_FACTOR', 1.20),

@@ -10,16 +10,21 @@ use App\Notifications\AdminNewBookingNotification;
 use App\Notifications\CustomerBookingConfirmationNotification;
 use App\Notifications\DriverAssignedNotification;
 use App\Services\Booking\BookingAccessTokenService;
+use App\Services\Telegram\TelegramBookingNotifier;
 use Illuminate\Support\Facades\Notification;
 
 final class LaravelBookingNotificationService implements BookingNotificationService
 {
-    public function __construct(private readonly BookingAccessTokenService $tokens) {}
+    public function __construct(
+        private readonly BookingAccessTokenService $tokens,
+        private readonly TelegramBookingNotifier $telegram,
+    ) {}
 
     public function sendBookingCreated(Booking $booking): void
     {
         Notification::route('mail', (string) config('tourism.notifications.admin_email'))
             ->notify(new AdminNewBookingNotification($booking));
+        $this->telegram->bookingCreated($booking);
 
         if ($booking->customer_email) {
             $token = $this->tokens->tokenForUuid($booking->uuid);
@@ -33,6 +38,7 @@ final class LaravelBookingNotificationService implements BookingNotificationServ
 
     public function sendDriverAssigned(Booking $booking): void
     {
+        $this->telegram->driverAssigned($booking);
         if ($booking->driver?->email) {
             Notification::route('mail', $booking->driver->email)
                 ->notify(new DriverAssignedNotification($booking));

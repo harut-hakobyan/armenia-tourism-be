@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\V1\PublicApi\EstimateController;
 use App\Http\Controllers\Api\V1\PublicApi\ReviewController;
 use App\Http\Controllers\Api\V1\PublicApi\TourCategoryController;
 use App\Http\Controllers\Api\V1\PublicApi\TourController;
+use App\Http\Controllers\Api\V1\TelegramConnectionController;
+use App\Http\Controllers\Api\V1\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -67,6 +69,13 @@ Route::prefix('v1')->group(function (): void {
 
     Route::get('/admin/health', static fn (): array => ['status' => 'ok'])
         ->middleware(['auth:sanctum', 'role:admin']);
+
+    Route::post('/telegram/webhook', TelegramWebhookController::class)->middleware('throttle:120,1');
+    Route::middleware(['auth:sanctum', 'role:admin,manager,driver'])->prefix('telegram')->group(function (): void {
+        Route::get('/', [TelegramConnectionController::class, 'show']);
+        Route::post('/link', [TelegramConnectionController::class, 'link'])->middleware('throttle:5,1');
+        Route::delete('/', [TelegramConnectionController::class, 'destroy']);
+    });
 
     Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
         Route::get('/dashboard', DashboardController::class);
