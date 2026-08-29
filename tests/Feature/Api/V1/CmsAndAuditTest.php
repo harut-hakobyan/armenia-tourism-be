@@ -106,6 +106,9 @@ final class CmsAndAuditTest extends TestCase
 
         $mediaId = $response->json('data.id');
         $this->assertDatabaseHas('media', ['id' => $mediaId, 'mediable_type' => Car::class, 'mediable_id' => $car->id]);
+        $cars = $this->actingAs($admin)->getJson('/api/v1/admin/directory/cars?per_page=100')->assertOk()->json('data');
+        $this->assertSame($mediaId, collect($cars)->firstWhere('id', $car->id)['cover_image']['id']);
+        $this->getJson("/api/v1/cars/{$car->id}")->assertOk()->assertJsonPath('data.cover_image.id', $mediaId);
         $this->actingAs($admin)->deleteJson("/api/v1/admin/media/{$mediaId}")->assertNoContent();
         $this->assertSoftDeleted('media', ['id' => $mediaId]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'media.deleted', 'subject_id' => $mediaId]);

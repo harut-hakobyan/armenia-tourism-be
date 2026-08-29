@@ -33,7 +33,8 @@ final class DestinationResource extends JsonResource
             'featured' => $this->featured,
             'cover_image' => $this->when(
                 $this->relationLoaded('media'),
-                fn () => ($cover = $media->firstWhere('collection', 'cover')) ? new MediaResource($cover) : null,
+                fn () => ($cover = $media->where('collection', 'cover')->last()
+                    ?? $media->where('collection', 'gallery')->last()) ? new MediaResource($cover) : null,
             ),
             'gallery' => $this->when(
                 $this->relationLoaded('media'),

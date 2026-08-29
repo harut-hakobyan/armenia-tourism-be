@@ -9,6 +9,7 @@ use App\Enums\CurrencyCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpsertDestinationRequest;
 use App\Http\Requests\Admin\UpsertTourRequest;
+use App\Http\Resources\Admin\AdminCarResource;
 use App\Http\Resources\Admin\AdminDestinationResource;
 use App\Http\Resources\Admin\AdminTourResource;
 use App\Models\Car;
@@ -132,7 +133,9 @@ final class DirectoryController extends Controller
 
     public function cars(Request $request): JsonResponse
     {
-        return response()->json(Car::query()->with('media')->orderBy('brand')->paginate($this->perPage($request)));
+        $cars = Car::query()->with('media')->orderBy('brand')->paginate($this->perPage($request));
+
+        return response()->json($cars->through(fn (Car $car): array => (new AdminCarResource($car))->resolve($request)));
     }
 
     public function storeCar(Request $request, AuditLogger $audit): JsonResponse
@@ -140,7 +143,7 @@ final class DirectoryController extends Controller
         $car = Car::query()->create($this->validateCar($request));
         $audit->record($request->user(), 'cars.created', $car, [], $car->toArray(), $request->ip());
 
-        return response()->json(['data' => $car->load('media')], 201);
+        return response()->json(['data' => (new AdminCarResource($car->load('media')))->resolve($request)], 201);
     }
 
     public function drivers(Request $request): JsonResponse
@@ -157,7 +160,7 @@ final class DirectoryController extends Controller
             $model->update($changes);
             $audit->record($request->user(), 'cars.updated', $model, $old, $model->only(array_keys($changes)), $request->ip());
 
-            return response()->json(['data' => $model->refresh()->load('media')]);
+            return response()->json(['data' => (new AdminCarResource($model->refresh()->load('media')))->resolve($request)]);
         }
 
         $validated = $request->validate([
