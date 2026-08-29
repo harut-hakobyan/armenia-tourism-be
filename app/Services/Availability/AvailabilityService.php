@@ -39,7 +39,7 @@ final class AvailabilityService
     }
 
     /** @return Collection<int, Car> */
-    public function getAvailableCars(CarbonInterface $startsAt, CarbonInterface $endsAt, int $passengers = 1): Collection
+    public function getAvailableCars(CarbonInterface $startsAt, CarbonInterface $endsAt, int $passengers = 1, ?int $ignoreBookingId = null): Collection
     {
         $this->validateWindow($startsAt, $endsAt);
 
@@ -51,20 +51,20 @@ final class AvailabilityService
             ->where('active', true)
             ->where('available_for_booking', true)
             ->where('passenger_capacity', '>=', $passengers)
-            ->whereDoesntHave('bookings', fn (Builder $query): Builder => $this->conflicting($query, $startsAt, $endsAt))
+            ->whereDoesntHave('bookings', fn (Builder $query): Builder => $this->conflicting($query, $startsAt, $endsAt, $ignoreBookingId))
             ->orderBy('base_price_minor')
             ->get();
     }
 
     /** @return Collection<int, Driver> */
-    public function getAvailableDrivers(CarbonInterface $startsAt, CarbonInterface $endsAt, ?int $carId = null): Collection
+    public function getAvailableDrivers(CarbonInterface $startsAt, CarbonInterface $endsAt, ?int $carId = null, ?int $ignoreBookingId = null): Collection
     {
         $this->validateWindow($startsAt, $endsAt);
 
         return Driver::query()
             ->where('active', true)
             ->when($carId, fn (Builder $query, int $id): Builder => $query->whereHas('cars', fn (Builder $cars): Builder => $cars->whereKey($id)))
-            ->whereDoesntHave('bookings', fn (Builder $query): Builder => $this->conflicting($query, $startsAt, $endsAt))
+            ->whereDoesntHave('bookings', fn (Builder $query): Builder => $this->conflicting($query, $startsAt, $endsAt, $ignoreBookingId))
             ->orderByDesc('rating')
             ->get();
     }

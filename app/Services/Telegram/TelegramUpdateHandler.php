@@ -128,7 +128,7 @@ final class TelegramUpdateHandler
 
     private function availableCars(string $chatId, Booking $booking): void
     {
-        $rows = $this->availability->getAvailableCars($booking->starts_at, $booking->planned_end_at, $booking->passengers)
+        $rows = $this->availability->getAvailableCars($booking->starts_at, $booking->planned_end_at, $booking->passengers, $booking->id)
             ->take(10)->map(fn (Car $car) => [['text' => "{$car->brand} {$car->model}", 'callback_data' => "ac:{$booking->id}:{$car->id}"]])->values()->all();
         $this->client->sendMessage($chatId, '<b>Select an available car</b>', $rows);
     }
@@ -139,7 +139,7 @@ final class TelegramUpdateHandler
         $this->operations($user);
         $booking = Booking::query()->findOrFail((int) ($parts[1] ?? 0));
         $carId = (int) ($parts[2] ?? 0);
-        $rows = $this->availability->getAvailableDrivers($booking->starts_at, $booking->planned_end_at, $carId)
+        $rows = $this->availability->getAvailableDrivers($booking->starts_at, $booking->planned_end_at, $carId, $booking->id)
             ->take(10)->map(fn (Driver $driver) => [['text' => "{$driver->first_name} {$driver->last_name}", 'callback_data' => "ad:{$booking->id}:{$carId}:{$driver->id}"]])->values()->all();
         $this->client->sendMessage($chatId, '<b>Select an available driver</b>', $rows);
     }

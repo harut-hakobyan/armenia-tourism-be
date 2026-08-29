@@ -8,6 +8,8 @@ Completed all 10 planned MVP phases.
 
 Post-MVP enhancement completed: scheduled small-group tours alongside the original private-tour offering.
 
+Post-MVP enhancement completed: secure Telegram operations bot for admins, managers, and drivers, with booking notifications, role-authorized inline actions, guided assignment, and driver trip-status updates.
+
 - Explicit `private` and `group` tour formats with API filtering
 - Scheduled group departures with vehicle, driver, meeting point, capacity, and optional departure price
 - Per-person authoritative estimates and transactional remaining-seat validation

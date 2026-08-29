@@ -10,6 +10,7 @@ use App\Models\ContactInquiry;
 use App\Models\Faq;
 use App\Models\PromoCode;
 use App\Models\Setting;
+use App\Models\Tour;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -108,5 +109,15 @@ final class CmsAndAuditTest extends TestCase
         $this->actingAs($admin)->deleteJson("/api/v1/admin/media/{$mediaId}")->assertNoContent();
         $this->assertSoftDeleted('media', ['id' => $mediaId]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'media.deleted', 'subject_id' => $mediaId]);
+
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+        $tourMedia = $this->actingAs($admin)->postJson("/api/v1/admin/media/tours/{$tour->id}", [
+            'file' => UploadedFile::fake()->createWithContent('tour.png', $png),
+            'collection' => 'gallery',
+            'alt_text' => 'Garni tour',
+        ])->assertCreated();
+        $this->getJson('/api/v1/tours/garni-geghard?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.cover_image.id', $tourMedia->json('data.id'));
     }
 }

@@ -148,6 +148,31 @@ POST /api/v1/driver/trips/{booking}/status
 
 Authenticated requests use `Authorization: Bearer <token>`. The full planned public/admin/driver endpoint map is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Telegram operations bot
+
+Admins, managers, and drivers can securely link a private Telegram chat from the Telegram page in their web operations panel. Links are single-use and expire after 15 minutes.
+
+Configure the bot created with BotFather:
+
+```env
+TELEGRAM_BOT_TOKEN=123456:replace-with-bot-token
+TELEGRAM_BOT_USERNAME=YourArmeniaBot
+TELEGRAM_WEBHOOK_SECRET=replace-with-a-long-random-secret
+```
+
+Apply the migration, restart the application and queue worker, then register a public HTTPS backend URL (an ngrok backend URL works for development):
+
+```bash
+php artisan migrate
+php artisan telegram:webhook --url=https://api.example.com
+```
+
+The webhook endpoint is `/api/v1/telegram/webhook`. Telegram requests must contain the configured `X-Telegram-Bot-Api-Secret-Token`. Incoming updates and outgoing messages use Laravel queues, so the queue worker must be running.
+
+Admin/manager bot actions include recent booking lists, details, confirmation, cancellation, and guided available-car/driver assignment. Drivers receive assigned trips and can advance through `on_the_way`, `arrived`, `passenger_picked_up`, `trip_started`, and `completed`.
+
+Remove the registered webhook with `php artisan telegram:webhook --remove`.
+
 ## Quality checks
 
 ```bash
