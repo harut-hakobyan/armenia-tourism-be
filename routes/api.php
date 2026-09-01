@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\CheckInController;
 use App\Http\Controllers\Api\V1\Driver\TripController;
 use App\Http\Controllers\Api\V1\PublicApi\CarController;
 use App\Http\Controllers\Api\V1\PublicApi\ContentController;
@@ -77,6 +78,12 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/preferences', [TelegramConnectionController::class, 'preferences']);
         Route::delete('/', [TelegramConnectionController::class, 'destroy']);
     });
+
+    Route::middleware(['auth:sanctum', 'role:admin,manager,driver', 'throttle:60,1'])
+        ->prefix('check-ins')->group(function (): void {
+            Route::post('/lookup', [CheckInController::class, 'lookup']);
+            Route::post('/', [CheckInController::class, 'store']);
+        });
 
     Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
         Route::get('/dashboard', DashboardController::class);

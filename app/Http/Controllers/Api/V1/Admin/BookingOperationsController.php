@@ -121,7 +121,7 @@ final class BookingOperationsController extends Controller
         return $booking->load([
             'tour.translations', 'car', 'driver', 'promoCode', 'statusHistory',
             'driverTripStatusHistory', 'tourDetail', 'transferDetail',
-            'privateDriverDetail', 'customTripDetail.stops',
+            'privateDriverDetail', 'customTripDetail.stops', 'checkIns.checkedInBy',
         ]);
     }
 }

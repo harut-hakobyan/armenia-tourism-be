@@ -36,6 +36,7 @@ final class CustomerBookingConfirmationNotification extends Notification impleme
             ->line("Pickup: {$this->booking->pickup_address}")
             ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
             ->line('Total: '.number_format($this->booking->total_minor / 100, 2).' '.$this->booking->currency->value)
+            ->line('Your secure booking page includes the QR ticket that staff will scan when you arrive.')
             ->action('View your booking', $this->publicUrl)
             ->line('Keep this private link safe; it provides access to your booking details.');
     }
