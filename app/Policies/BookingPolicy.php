@@ -45,4 +45,13 @@ final class BookingPolicy
         return $user->role === UserRole::Driver
             && $user->driver?->id === $booking->driver_id;
     }
+
+    public function checkIn(User $user, Booking $booking): bool
+    {
+        return match ($user->role) {
+            UserRole::Manager => true,
+            UserRole::Driver => $user->driver?->id === $booking->driver_id,
+            default => false,
+        };
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\BookingStatus;
 use App\Enums\CurrencyCode;
 use App\Enums\DriverTripStatus;
@@ -26,6 +27,7 @@ final class Booking extends Model
         'uuid', 'booking_number', 'secure_token_hash', 'idempotency_key', 'request_fingerprint',
         'customer_id', 'tour_id', 'group_tour_departure_id', 'car_id', 'driver_id', 'promo_code_id',
         'service_type', 'booking_date', 'pickup_time', 'starts_at', 'planned_end_at',
+        'check_in_token_hash', 'attendance_status', 'checked_in_passengers', 'last_checked_in_at',
         'pickup_address', 'pickup_latitude', 'pickup_longitude', 'dropoff_address',
         'dropoff_latitude', 'dropoff_longitude', 'passengers', 'customer_name',
         'customer_email', 'customer_phone', 'customer_whatsapp',
@@ -62,6 +64,9 @@ final class Booking extends Model
             'payment_method' => PaymentMethod::class,
             'payment_status' => PaymentStatus::class,
             'booking_status' => BookingStatus::class,
+            'attendance_status' => AttendanceStatus::class,
+            'checked_in_passengers' => 'integer',
+            'last_checked_in_at' => 'immutable_datetime',
             'driver_trip_status' => DriverTripStatus::class,
             'price_breakdown' => 'array',
         ];
@@ -137,5 +142,10 @@ final class Booking extends Model
     public function driverTripStatusHistory(): HasMany
     {
         return $this->hasMany(DriverTripStatusHistory::class)->orderBy('created_at');
+    }
+
+    public function checkIns(): HasMany
+    {
+        return $this->hasMany(BookingCheckIn::class)->orderBy('checked_in_at');
     }
 }

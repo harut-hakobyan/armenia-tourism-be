@@ -1,6 +1,6 @@
 # Development Progress
 
-Last updated: 2026-08-29
+Last updated: 2026-09-01
 
 ## Current position
 
@@ -9,6 +9,14 @@ Completed all 10 planned MVP phases.
 Post-MVP enhancement completed: scheduled small-group tours alongside the original private-tour offering.
 
 Post-MVP enhancement completed: secure Telegram operations bot for admins, managers, and drivers, with booking notifications, role-authorized inline actions, guided assignment, and driver trip-status updates.
+
+Post-MVP enhancement completed: secure QR arrival tickets and role-authorized passenger check-in for admins, managers, and assigned drivers.
+
+- Dedicated opaque QR payloads with no customer data, sequential identifiers, or login token exposure
+- QR shown on booking confirmation/status pages with an SVG download action
+- Camera scanner plus manual fallback in admin/manager and driver operations panels
+- Partial-party arrivals, duplicate-completion protection, staff identity, notes, timestamps, and audit logging
+- Existing bookings receive tickets through a migration backfill
 
 - Explicit `private` and `group` tour formats with API filtering
 - Scheduled group departures with vehicle, driver, meeting point, capacity, and optional departure price
