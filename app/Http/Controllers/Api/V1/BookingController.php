@@ -19,8 +19,7 @@ final class BookingController extends Controller
         StoreBookingRequest $request,
         CreateBookingAction $action,
         BookingCheckInTokenService $checkInTokens,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $result = $action->execute($request->toData());
         $resource = (new BookingResource($result->booking))->resolve($request);
         $publicUrl = rtrim((string) config('app.frontend_url'), '/')
@@ -41,8 +40,7 @@ final class BookingController extends Controller
         string $token,
         BookingAccessTokenService $tokens,
         BookingCheckInTokenService $checkInTokens,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $booking = Booking::query()
             ->where('booking_number', $bookingNumber)
             ->with([
