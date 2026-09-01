@@ -23,7 +23,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "${APP_PORT:-8000}:80"
+      - "127.0.0.1:8091:80"
     volumes:
       - ./:/var/www/html:ro
       - app-storage:/var/www/html/storage:ro
