@@ -6,10 +6,11 @@ namespace App\Notifications;
 
 use App\Models\Booking;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class AdminNewBookingNotification extends Notification
+final class AdminNewBookingNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -23,14 +24,20 @@ final class AdminNewBookingNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $adminUrl = rtrim((string) config('app.frontend_url'), '/')
+            ."/admin/bookings/{$this->booking->id}";
+
         return (new MailMessage)
             ->subject("New booking {$this->booking->booking_number}")
             ->greeting('New Armenia Tourism booking')
             ->line("Service: {$this->booking->service_type->value}")
             ->line("Customer: {$this->booking->customer_name}")
+            ->line("Phone: {$this->booking->customer_phone}")
+            ->line("Passengers: {$this->booking->passengers}")
             ->line("Pickup: {$this->booking->pickup_address}")
             ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
-            ->line("Total: {$this->booking->total_minor} {$this->booking->currency->value} minor units")
+            ->line('Total: '.number_format($this->booking->total_minor / 100, 2).' '.$this->booking->currency->value)
+            ->action('Manage booking', $adminUrl)
             ->line('Open the admin dashboard to confirm and assign the trip.');
     }
 }

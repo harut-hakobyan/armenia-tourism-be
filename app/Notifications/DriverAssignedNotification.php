@@ -6,10 +6,11 @@ namespace App\Notifications;
 
 use App\Models\Booking;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class DriverAssignedNotification extends Notification
+final class DriverAssignedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -30,7 +31,7 @@ final class DriverAssignedNotification extends Notification
             ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
             ->line("Customer: {$this->booking->customer_name}")
             ->line("Customer phone: {$this->booking->customer_phone}")
-            ->line("Car: {$this->booking->car->brand} {$this->booking->car->model}")
+            ->line("Car: {$this->booking->car->displayName()}")
             ->line('Open the driver interface to review the trip and update its status.');
     }
 }

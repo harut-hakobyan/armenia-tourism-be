@@ -148,6 +148,31 @@ POST /api/v1/driver/trips/{booking}/status
 
 Authenticated requests use `Authorization: Bearer <token>`. The full planned public/admin/driver endpoint map is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Transactional booking email
+
+Booking email is dispatched through Laravel queues:
+
+- customers receive a booking confirmation with their secure booking link;
+- every active admin and manager receives the new booking;
+- the assigned driver receives the trip details;
+- the customer receives the assigned driver, vehicle, updated status, and booking link.
+
+For Cloudflare Email Service SMTP, first onboard the domain under **Email Service > Email Sending**, then create an API token with `Email Sending: Edit` and configure production:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+MAIL_HOST=smtp.mx.cloudflare.net
+MAIL_PORT=465
+MAIL_USERNAME=api_token
+MAIL_PASSWORD=replace-with-cloudflare-api-token
+MAIL_FROM_ADDRESS=bookings@example.com
+MAIL_FROM_NAME="Armenia Tourism"
+BOOKING_ADMIN_EMAIL=bookings@example.com
+```
+
+`MAIL_FROM_ADDRESS` must use the domain onboarded for Cloudflare Email Sending. DMARC alone does not submit outbound mail. Keep the queue worker running and restart it after changing mail configuration.
+
 ## Telegram operations bot
 
 Admins, managers, and drivers can securely link a private Telegram chat from the Telegram page in their web operations panel. Links are single-use and expire after 15 minutes.
