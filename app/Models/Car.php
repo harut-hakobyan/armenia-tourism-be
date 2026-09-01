@@ -44,6 +44,11 @@ final class Car extends Model
         ];
     }
 
+    public function displayName(): string
+    {
+        return trim("{$this->brand} {$this->model}");
+    }
+
     public function drivers(): BelongsToMany
     {
         return $this->belongsToMany(Driver::class, 'driver_cars')->withTimestamps();
