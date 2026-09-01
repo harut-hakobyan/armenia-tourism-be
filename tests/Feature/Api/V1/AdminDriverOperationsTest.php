@@ -12,6 +12,7 @@ use App\Models\Car;
 use App\Models\Driver;
 use App\Models\Tour;
 use App\Models\User;
+use App\Notifications\CustomerDriverAssignedNotification;
 use App\Notifications\DriverAssignedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -194,6 +195,10 @@ final class AdminDriverOperationsTest extends TestCase
             'user_id' => $manager->id,
         ]);
         Notification::assertSentOnDemand(DriverAssignedNotification::class);
+        Notification::assertSentOnDemand(
+            CustomerDriverAssignedNotification::class,
+            fn ($notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === $booking->customer_email,
+        );
     }
 
     public function test_assignment_rejects_unauthorized_car_and_overlapping_driver(): void

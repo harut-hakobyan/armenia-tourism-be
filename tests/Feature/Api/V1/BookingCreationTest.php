@@ -6,6 +6,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Contracts\BookingNotificationService;
 use App\Enums\BookingStatus;
+use App\Enums\UserRole;
 use App\Exceptions\InvalidBookingStatusTransition;
 use App\Models\Booking;
 use App\Models\Car;
@@ -193,12 +194,21 @@ final class BookingCreationTest extends TestCase
     {
         Notification::fake();
         $this->seed();
+        $manager = User::factory()->create([
+            'role' => UserRole::Manager,
+            'email' => 'operations@example.com',
+            'is_active' => true,
+        ]);
         $response = $this->postJson('/api/v1/bookings', $this->tourPayload())->assertCreated();
         $booking = Booking::query()->where('booking_number', $response->json('data.booking_number'))->firstOrFail();
 
         $this->app->make(BookingNotificationService::class)->sendBookingCreated($booking);
 
         Notification::assertSentOnDemand(AdminNewBookingNotification::class);
+        Notification::assertSentOnDemand(
+            AdminNewBookingNotification::class,
+            fn ($notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === $manager->email,
+        );
         Notification::assertSentOnDemand(CustomerBookingConfirmationNotification::class);
     }
 
