@@ -16,12 +16,20 @@ use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 final class MediaController extends Controller
 {
+    public function index(string $type, int $id): AnonymousResourceCollection
+    {
+        $subject = $this->subject($type, $id);
+
+        return MediaResource::collection($subject->media()->get());
+    }
+
     public function store(Request $request, string $type, int $id, AuditLogger $audit): MediaResource
     {
         $validated = $request->validate([

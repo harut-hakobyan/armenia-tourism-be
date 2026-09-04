@@ -121,7 +121,23 @@ final class CmsAndAuditTest extends TestCase
         ])->assertCreated();
         $this->getJson('/api/v1/tours/garni-geghard?locale=en')
             ->assertOk()
-            ->assertJsonPath('data.cover_image.id', $tourMedia->json('data.id'));
+            ->assertJsonPath('data.cover_image.id', $tourMedia->json('data.id'))
+            ->assertJsonPath('data.gallery.0.id', $tourMedia->json('data.id'));
+        $this->actingAs($admin)->getJson('/api/v1/admin/directory/tours?per_page=100')
+            ->assertOk()
+            ->assertJsonFragment([
+                'gallery' => [[
+                    'id' => $tourMedia->json('data.id'),
+                    'uuid' => $tourMedia->json('data.uuid'),
+                    'collection' => 'gallery',
+                    'url' => $tourMedia->json('data.url'),
+                    'alt_text' => 'Garni tour',
+                    'mime_type' => 'image/png',
+                ]],
+            ]);
+        $this->actingAs($admin)->getJson("/api/v1/admin/media/tours/{$tour->id}")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $tourMedia->json('data.id'));
     }
 
     public function test_uploading_a_new_cover_replaces_the_previous_cover(): void
