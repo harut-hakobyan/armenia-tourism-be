@@ -51,6 +51,12 @@ final class TourResource extends JsonResource
                 $this->relationLoaded('media'),
                 fn () => MediaResource::collection($media->where('collection', 'gallery')->values()),
             ),
+            'video' => $this->when(
+                $this->relationLoaded('media'),
+                fn () => ($video = $media->where('collection', 'video')->last())
+                    ? new MediaResource($video)
+                    : null,
+            ),
             'itinerary' => $this->whenLoaded('stops', fn () => $this->stops->map(
                 static function ($stop): array {
                     $translations = $stop->destination?->translations;

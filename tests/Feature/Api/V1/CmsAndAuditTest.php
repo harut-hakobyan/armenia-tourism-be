@@ -164,4 +164,51 @@ final class CmsAndAuditTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['id' => $second->json('data.id')]);
     }
+
+    public function test_admin_can_upload_replace_and_remove_a_tour_video(): void
+    {
+        Storage::fake('public');
+        config()->set('filesystems.default', 'public');
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+
+        $first = $this->actingAs($admin)->postJson("/api/v1/admin/media/tours/{$tour->id}", [
+            'file' => UploadedFile::fake()->create('first.mp4', 100, 'video/mp4'),
+            'collection' => 'video',
+        ])->assertCreated()->assertJsonPath('data.collection', 'video');
+
+        $this->getJson('/api/v1/tours/garni-geghard?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.video.id', $first->json('data.id'));
+        $this->actingAs($admin)->getJson('/api/v1/admin/directory/tours?per_page=100')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $first->json('data.id'), 'collection' => 'video']);
+
+        $second = $this->actingAs($admin)->postJson("/api/v1/admin/media/tours/{$tour->id}", [
+            'file' => UploadedFile::fake()->create('second.webm', 100, 'video/webm'),
+            'collection' => 'video',
+        ])->assertCreated();
+
+        $this->assertSoftDeleted('media', ['id' => $first->json('data.id')]);
+        $this->actingAs($admin)->deleteJson('/api/v1/admin/media/'.$second->json('data.id'))
+            ->assertNoContent();
+        $this->getJson('/api/v1/tours/garni-geghard?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.video', null);
+    }
+
+    public function test_video_upload_is_only_available_for_tours(): void
+    {
+        Storage::fake('public');
+        config()->set('filesystems.default', 'public');
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $car = Car::query()->firstOrFail();
+
+        $this->actingAs($admin)->postJson("/api/v1/admin/media/cars/{$car->id}", [
+            'file' => UploadedFile::fake()->create('car.mp4', 100, 'video/mp4'),
+            'collection' => 'video',
+        ])->assertUnprocessable()->assertJsonValidationErrors('collection');
+    }
 }
