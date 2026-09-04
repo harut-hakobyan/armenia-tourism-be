@@ -40,6 +40,9 @@ final class AdminTourResource extends JsonResource
             'gallery' => MediaResource::collection(
                 $this->media->where('collection', 'gallery')->values(),
             ),
+            'video' => ($video = $this->media->where('collection', 'video')->last())
+                ? new MediaResource($video)
+                : null,
         ];
     }
 }

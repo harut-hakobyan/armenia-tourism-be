@@ -33,13 +33,25 @@ final class MediaController extends Controller
     public function store(Request $request, string $type, int $id, AuditLogger $audit): MediaResource
     {
         $validated = $request->validate([
-            'file' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
-            'collection' => ['required', Rule::in(['cover', 'gallery', 'profile'])],
+            'file' => [
+                'required',
+                'file',
+                Rule::when(
+                    $request->input('collection') === 'video',
+                    ['mimetypes:video/mp4,video/webm', 'max:102400'],
+                    ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+                ),
+            ],
+            'collection' => ['required', Rule::in(
+                $type === 'tours'
+                    ? ['cover', 'gallery', 'video']
+                    : ['cover', 'gallery', 'profile'],
+            )],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:10000'],
         ]);
         $subject = $this->subject($type, $id);
-        $replacedMedia = in_array($validated['collection'], ['cover', 'profile'], true)
+        $replacedMedia = in_array($validated['collection'], ['cover', 'profile', 'video'], true)
             ? $subject->media()->where('collection', $validated['collection'])->get()
             : collect();
         $file = $request->file('file');
