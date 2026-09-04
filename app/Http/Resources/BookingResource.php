@@ -35,6 +35,12 @@ final class BookingResource extends JsonResource
                 'longitude' => $this->dropoff_longitude,
             ],
             'passengers' => $this->passengers,
+            'attendance' => [
+                'status' => $this->attendance_status->value,
+                'checked_in_passengers' => $this->checked_in_passengers,
+                'remaining_passengers' => max(0, $this->passengers - $this->checked_in_passengers),
+                'last_checked_in_at' => $this->last_checked_in_at?->toIso8601String(),
+            ],
             'customer' => [
                 'name' => $this->customer_name,
                 'email' => $this->customer_email,

@@ -73,7 +73,7 @@ final class TripController extends Controller
         return $booking->load([
             'tour.translations', 'car', 'driver', 'statusHistory',
             'driverTripStatusHistory', 'tourDetail', 'transferDetail',
-            'privateDriverDetail', 'customTripDetail.stops',
+            'privateDriverDetail', 'customTripDetail.stops', 'checkIns.checkedInBy',
         ]);
     }
 }

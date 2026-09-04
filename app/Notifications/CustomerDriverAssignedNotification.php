@@ -39,6 +39,7 @@ final class CustomerDriverAssignedNotification extends Notification implements S
             ->line("Vehicle: {$this->booking->car->displayName()}")
             ->line("Pickup: {$this->booking->pickup_address}")
             ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
+            ->line('Please have the QR ticket on your booking page ready when you arrive.')
             ->action('View updated booking', $this->publicUrl)
             ->line('If you have any questions, reply to this email or contact our support team.');
     }

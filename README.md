@@ -33,6 +33,7 @@ The ten-phase MVP is implemented:
 - transactional booking creation for tours, transfers, private drivers, and custom trips
 - concurrency-safe yearly booking numbers and idempotency claims
 - deterministic secure customer access tokens stored only as hashes
+- privacy-safe QR arrival tickets with partial passenger check-in and a complete attendance audit trail
 - immutable service, route, tour, customer, and price snapshots
 - booking status history and validated workflow transitions
 - after-commit booking events and queued admin/customer email notifications
@@ -126,6 +127,8 @@ POST /api/v1/private-driver/estimate
 POST /api/v1/custom-trips/estimate
 POST /api/v1/bookings
 GET  /api/v1/bookings/{bookingNumber}/{secureToken}
+POST /api/v1/check-ins/lookup
+POST /api/v1/check-ins
 GET  /api/v1/admin/bookings
 GET  /api/v1/admin/bookings/calendar
 GET  /api/v1/admin/bookings/{booking}
@@ -148,11 +151,26 @@ POST /api/v1/driver/trips/{booking}/status
 
 Authenticated requests use `Authorization: Bearer <token>`. The full planned public/admin/driver endpoint map is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## QR arrival check-in
+
+Every new and existing booking has a dedicated opaque QR arrival ticket. The QR payload contains no booking ID, customer details, or reusable login credentials. Customers can view and download it from the booking confirmation and secure booking-status pages.
+
+Staff can open **QR check-in** from the operations navigation. Admins and managers can scan any ticket; a driver can scan only a booking assigned to that driver. The scanner supports rear-camera capture and manual code entry, partial party arrivals, optional notes, idempotent repeat scans after completion, and an audit record of who checked in each passenger group. Camera scanning requires HTTPS in production (localhost is accepted by browsers during development).
+
+The protected API flow is:
+
+```text
+POST /api/v1/check-ins/lookup  { "token": "AMT-CHECKIN:..." }
+POST /api/v1/check-ins         { "token": "AMT-CHECKIN:...", "passengers": 2, "notes": "..." }
+```
+
+Run `php artisan migrate` after deployment to add attendance fields, backfill secure tickets for existing bookings, and create the immutable check-in history table. Keep `APP_KEY` stable because the displayed opaque ticket is derived from the booking UUID using that key.
+
 ## Transactional booking email
 
 Booking email is dispatched through Laravel queues:
 
-- customers receive a booking confirmation with their secure booking link;
+- customers receive a booking confirmation with their secure booking link, where their QR arrival ticket is available;
 - every active admin and manager receives the new booking;
 - the assigned driver receives the trip details;
 - the customer receives the assigned driver, vehicle, updated status, and booking link.

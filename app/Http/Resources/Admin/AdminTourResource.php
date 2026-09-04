@@ -37,6 +37,12 @@ final class AdminTourResource extends JsonResource
                 'locale', 'title', 'short_description', 'description', 'seo_title', 'seo_description',
             ])->values(),
             'cover_image' => $cover ? new MediaResource($cover) : null,
+            'gallery' => MediaResource::collection(
+                $this->media->where('collection', 'gallery')->values(),
+            ),
+            'video' => ($video = $this->media->where('collection', 'video')->last())
+                ? new MediaResource($video)
+                : null,
         ];
     }
 }

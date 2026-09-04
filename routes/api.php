@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BookingController;
+use App\Http\Controllers\Api\V1\CheckInController;
 use App\Http\Controllers\Api\V1\Driver\TripController;
 use App\Http\Controllers\Api\V1\PublicApi\CarController;
 use App\Http\Controllers\Api\V1\PublicApi\ContentController;
@@ -78,6 +79,12 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/', [TelegramConnectionController::class, 'destroy']);
     });
 
+    Route::middleware(['auth:sanctum', 'role:admin,manager,driver', 'throttle:60,1'])
+        ->prefix('check-ins')->group(function (): void {
+            Route::post('/lookup', [CheckInController::class, 'lookup']);
+            Route::post('/', [CheckInController::class, 'store']);
+        });
+
     Route::middleware(['auth:sanctum', 'role:admin,manager'])->prefix('admin')->group(function (): void {
         Route::get('/dashboard', DashboardController::class);
         Route::get('/directory/tours', [DirectoryController::class, 'tours']);
@@ -117,6 +124,8 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/faqs/{faq}', [CmsController::class, 'updateFaq']);
         Route::get('/inquiries', [CmsController::class, 'inquiries']);
         Route::patch('/inquiries/{inquiry}', [CmsController::class, 'updateInquiry']);
+        Route::get('/media/{type}/{id}', [MediaController::class, 'index'])
+            ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers', 'tour-categories']);
         Route::post('/media/{type}/{id}', [MediaController::class, 'store'])
             ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers', 'tour-categories']);
         Route::delete('/media/{media}', [MediaController::class, 'destroy']);

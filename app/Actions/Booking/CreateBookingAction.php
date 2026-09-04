@@ -10,6 +10,7 @@ use App\Data\CreateBookingData;
 use App\Data\PriceBreakdown;
 use App\Data\RoutePoint;
 use App\Data\RouteResult;
+use App\Enums\AttendanceStatus;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ServiceType;
@@ -25,6 +26,7 @@ use App\Models\PromoCode;
 use App\Models\Tour;
 use App\Services\Availability\AvailabilityService;
 use App\Services\Booking\BookingAccessTokenService;
+use App\Services\Booking\BookingCheckInTokenService;
 use App\Services\Booking\BookingNumberGenerator;
 use App\Services\Booking\CustomerResolver;
 use App\Services\Pricing\PricingService;
@@ -40,6 +42,7 @@ final class CreateBookingAction
         private readonly AvailabilityService $availability,
         private readonly BookingNumberGenerator $numbers,
         private readonly BookingAccessTokenService $tokens,
+        private readonly BookingCheckInTokenService $checkInTokens,
         private readonly CustomerResolver $customers,
     ) {}
 
@@ -126,11 +129,13 @@ final class CreateBookingAction
             $customer = $this->customers->resolve($data);
             $uuid = (string) Str::uuid();
             $secureToken = $this->tokens->tokenForUuid($uuid);
+            $checkInToken = $this->checkInTokens->tokenForUuid($uuid);
 
             $booking = Booking::query()->create([
                 'uuid' => $uuid,
                 'booking_number' => $this->numbers->next($startsAt->year),
                 'secure_token_hash' => $this->tokens->hash($secureToken),
+                'check_in_token_hash' => $this->checkInTokens->hash($checkInToken),
                 'idempotency_key' => $data->idempotencyKey,
                 'request_fingerprint' => $fingerprint,
                 'customer_id' => $customer->id,
@@ -165,6 +170,8 @@ final class CreateBookingAction
                 'payment_method' => $data->paymentMethod,
                 'payment_status' => PaymentStatus::Unpaid,
                 'booking_status' => BookingStatus::Pending,
+                'attendance_status' => AttendanceStatus::Expected,
+                'checked_in_passengers' => 0,
                 'price_breakdown' => $price->toArray(),
             ]);
 
