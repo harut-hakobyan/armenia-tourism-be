@@ -16,6 +16,7 @@ final class MediaResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'collection' => $this->collection,
             'url' => Storage::disk($this->disk)->url($this->path),
             'alt_text' => $this->alt_text,
             'mime_type' => $this->mime_type,

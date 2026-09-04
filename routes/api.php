@@ -124,6 +124,8 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/faqs/{faq}', [CmsController::class, 'updateFaq']);
         Route::get('/inquiries', [CmsController::class, 'inquiries']);
         Route::patch('/inquiries/{inquiry}', [CmsController::class, 'updateInquiry']);
+        Route::get('/media/{type}/{id}', [MediaController::class, 'index'])
+            ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers', 'tour-categories']);
         Route::post('/media/{type}/{id}', [MediaController::class, 'store'])
             ->whereIn('type', ['tours', 'destinations', 'cars', 'drivers', 'tour-categories']);
         Route::delete('/media/{media}', [MediaController::class, 'destroy']);
