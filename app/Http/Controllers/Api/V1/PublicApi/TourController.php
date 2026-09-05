@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\PublicApi;
 
-use App\Enums\BookingStatus;
 use App\Enums\TourFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicApi\ListToursRequest;
@@ -37,11 +36,6 @@ final class TourController extends Controller
         return new TourResource($tour->load([
             'translations', 'category.translations', 'media', 'days',
             'stops.destination.translations',
-            'groupDepartures' => fn ($query) => $query->bookable()
-                ->with(['tour', 'bookings' => fn ($bookings) => $bookings->whereNotIn('booking_status', [
-                    BookingStatus::Cancelled->value,
-                    BookingStatus::NoShow->value,
-                ])])->limit(12),
         ]));
     }
 
@@ -52,11 +46,6 @@ final class TourController extends Controller
             ->active()
             ->with([
                 'translations', 'category.translations', 'media',
-                'groupDepartures' => fn ($departures) => $departures->bookable()
-                    ->with(['tour', 'bookings' => fn ($bookings) => $bookings->whereNotIn('booking_status', [
-                        BookingStatus::Cancelled->value,
-                        BookingStatus::NoShow->value,
-                    ])])->limit(12),
             ])
             ->when($filters['format'] ?? null, fn (Builder $query, string $format) => $query->where('format', $format))
             ->when($filters['category'] ?? null, fn (Builder $query, string $slug) => $query

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\UserRole;
+use App\Models\Destination;
+use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,5 +107,60 @@ final class CatalogManagementTest extends TestCase
 
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/destinations/{$id}")->assertNoContent();
         $this->assertSoftDeleted('destinations', ['id' => $id]);
+    }
+
+    public function test_admin_can_update_a_group_tour_schedule(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$tour->id}", [
+            'format' => 'group',
+            'start_time' => '08:30',
+            'meeting_point' => 'Cascade Complex, Yerevan',
+        ])->assertOk()
+            ->assertJsonPath('data.start_time', '08:30')
+            ->assertJsonPath('data.meeting_point', 'Cascade Complex, Yerevan');
+
+        $this->assertDatabaseHas('tours', [
+            'id' => $tour->id,
+            'start_time' => '08:30',
+            'meeting_point' => 'Cascade Complex, Yerevan',
+        ]);
+    }
+
+    public function test_admin_can_add_edit_reorder_and_remove_tour_itinerary_stops(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
+        $destinations = Destination::query()->whereIn('slug', ['yerevan', 'garni', 'geghard'])
+            ->get()->keyBy('slug');
+
+        $itinerary = [
+            ['destination_id' => $destinations['garni']->id, 'day_number' => 1, 'duration_minutes' => 90, 'optional' => false, 'notes' => 'Updated visit'],
+            ['destination_id' => $destinations['yerevan']->id, 'day_number' => 1, 'duration_minutes' => null, 'optional' => false, 'notes' => null],
+            ['destination_id' => $destinations['geghard']->id, 'day_number' => 2, 'duration_minutes' => 60, 'optional' => true, 'notes' => null],
+        ];
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$tour->id}", [
+            'itinerary' => $itinerary,
+        ])->assertOk()
+            ->assertJsonCount(3, 'data.itinerary')
+            ->assertJsonPath('data.itinerary.0.destination.slug', 'garni')
+            ->assertJsonPath('data.itinerary.0.stop_order', 1)
+            ->assertJsonPath('data.itinerary.2.day_number', 2)
+            ->assertJsonPath('data.itinerary.2.stop_order', 1);
+
+        $this->assertDatabaseCount('tour_stops', 42);
+        $this->assertDatabaseHas('tour_stops', [
+            'tour_id' => $tour->id,
+            'destination_id' => $destinations['garni']->id,
+            'day_number' => 1,
+            'stop_order' => 1,
+            'duration_minutes' => 90,
+            'notes' => 'Updated visit',
+        ]);
     }
 }

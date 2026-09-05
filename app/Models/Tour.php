@@ -21,7 +21,8 @@ final class Tour extends Model
 
     protected $fillable = [
         'category_id', 'slug', 'duration_minutes', 'approximate_distance_km',
-        'starting_price_minor', 'currency', 'pricing_type', 'format', 'active', 'featured',
+        'starting_price_minor', 'currency', 'pricing_type', 'format',
+        'start_time', 'meeting_point', 'active', 'featured',
         'max_passengers', 'pickup_available', 'dropoff_available',
         'free_cancellation_hours', 'sort_order',
     ];
