@@ -191,5 +191,4 @@ final class TourSeeder extends Seeder
             ],
         );
     }
-
 }
