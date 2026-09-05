@@ -8,6 +8,7 @@ use App\Data\PriceBreakdown;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Models\Car;
+use App\Models\CarCategoryPrice;
 use App\Models\Tour;
 use App\Models\TourPrice;
 use Carbon\CarbonImmutable;
@@ -36,7 +37,8 @@ final class PricingService
             throw new InvalidArgumentException('Passenger count exceeds the selected tour capacity.');
         }
 
-        if ($tour->currency !== $car->currency) {
+        [, $carCurrency] = $this->categoryPrice($car);
+        if ($tour->currency !== $carCurrency) {
             throw new DomainException('Tour and car currencies do not match.');
         }
 
@@ -70,16 +72,12 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements($distanceMeters, $durationMinutes);
-        $distanceKm = (int) ceil($distanceMeters / 1000);
-        $billableHours = (int) ceil($durationMinutes / 60);
+        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
 
         return $this->buildBreakdown(
-            $car->base_price_minor,
-            [
-                'distance' => $distanceKm * $car->price_per_km_minor,
-                'duration' => $billableHours * $car->price_per_hour_minor,
-            ],
-            $car->currency,
+            $fixedPriceMinor,
+            [],
+            $currency,
             $promoCode,
             $customerEmail,
         );
@@ -94,12 +92,12 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements($distanceMeters, 0);
-        $distanceKm = (int) ceil($distanceMeters / 1000);
+        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
 
         return $this->buildBreakdown(
-            $car->base_price_minor,
-            ['distance' => $distanceKm * $car->price_per_km_minor],
-            $car->currency,
+            $fixedPriceMinor,
+            [],
+            $currency,
             $promoCode,
             $customerEmail,
         );
@@ -114,12 +112,12 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements(0, $durationMinutes);
-        $billableHours = (int) ceil($durationMinutes / 60);
+        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
 
         return $this->buildBreakdown(
-            $car->base_price_minor,
-            ['duration' => $billableHours * $car->price_per_hour_minor],
-            $car->currency,
+            $fixedPriceMinor,
+            [],
+            $currency,
             $promoCode,
             $customerEmail,
         );
@@ -180,5 +178,15 @@ final class PricingService
         if ($distanceMeters < 0 || $durationMinutes < 0) {
             throw new InvalidArgumentException('Distance and duration cannot be negative.');
         }
+    }
+
+    /** @return array{int, CurrencyCode} */
+    private function categoryPrice(Car $car): array
+    {
+        $price = CarCategoryPrice::query()->where('category', $car->category->value)->first();
+
+        return $price
+            ? [$price->fixed_price_minor, $price->currency]
+            : [$car->base_price_minor, $car->currency];
     }
 }

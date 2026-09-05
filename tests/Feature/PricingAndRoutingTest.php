@@ -80,7 +80,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(6000, $price->totalMinor);
     }
 
-    public function test_custom_trip_uses_integer_distance_and_duration_components(): void
+    public function test_custom_trip_uses_the_fixed_car_category_price(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
@@ -89,9 +89,8 @@ final class PricingAndRoutingTest extends TestCase
             ->calculateCustomTrip($car, 100_000, 180);
 
         $this->assertSame(7000, $price->baseMinor);
-        $this->assertSame(5500, $price->adjustments['distance']);
-        $this->assertSame(4800, $price->adjustments['duration']);
-        $this->assertSame(17300, $price->totalMinor);
+        $this->assertSame([], $price->adjustments);
+        $this->assertSame(7000, $price->totalMinor);
     }
 
     public function test_route_provider_calculates_route_and_delegates_authoritative_price(): void
@@ -109,7 +108,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame('haversine', $route->provider);
         $this->assertGreaterThan(40_000, $route->distanceMeters);
         $this->assertGreaterThan($route->drivingDurationMinutes, $route->estimatedTourDurationMinutes);
-        $this->assertGreaterThan($car->base_price_minor, $price->totalMinor);
+        $this->assertSame($car->base_price_minor, $price->totalMinor);
     }
 
     public function test_promotion_minimum_order_is_enforced(): void

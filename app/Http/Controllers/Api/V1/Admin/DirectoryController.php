@@ -16,6 +16,7 @@ use App\Http\Resources\Admin\AdminDestinationResource;
 use App\Http\Resources\Admin\AdminDriverResource;
 use App\Http\Resources\Admin\AdminTourResource;
 use App\Models\Car;
+use App\Models\CarCategoryPrice;
 use App\Models\Destination;
 use App\Models\Driver;
 use App\Models\Tour;
@@ -183,10 +184,55 @@ final class DirectoryController extends Controller
 
     public function storeCar(Request $request, AuditLogger $audit): JsonResponse
     {
-        $car = Car::query()->create($this->validateCar($request));
+        $data = $this->validateCar($request);
+        $car = Car::query()->create([...$data, ...$this->categoryPriceSnapshot(CarCategory::from($data['category']))]);
         $audit->record($request->user(), 'cars.created', $car, [], $car->toArray(), $request->ip());
 
         return response()->json(['data' => (new AdminCarResource($car->load('media')))->resolve($request)], 201);
+    }
+
+    public function carCategoryPrices(): JsonResponse
+    {
+        $prices = collect(CarCategory::cases())->map(function (CarCategory $category): array {
+            $price = CarCategoryPrice::query()->firstOrCreate(
+                ['category' => $category->value],
+                ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+            );
+
+            return [
+                'category' => $category->value,
+                'fixed_price_minor' => $price->fixed_price_minor,
+                'currency' => $price->currency->value,
+            ];
+        });
+
+        return response()->json(['data' => $prices]);
+    }
+
+    public function updateCarCategoryPrice(Request $request, string $category, AuditLogger $audit): JsonResponse
+    {
+        $categoryEnum = CarCategory::tryFrom($category);
+        abort_unless($categoryEnum, 404);
+        $validated = $request->validate([
+            'fixed_price_minor' => ['required', 'integer', 'min:0'],
+            'currency' => ['required', Rule::enum(CurrencyCode::class)],
+        ]);
+        $price = CarCategoryPrice::query()->firstOrCreate(['category' => $categoryEnum->value]);
+        $old = $price->toArray();
+        $price->update($validated);
+        Car::query()->where('category', $categoryEnum->value)->update([
+            'base_price_minor' => $price->fixed_price_minor,
+            'price_per_km_minor' => 0,
+            'price_per_hour_minor' => 0,
+            'currency' => $price->currency->value,
+        ]);
+        $audit->record($request->user(), 'car_category_prices.updated', $price, $old, $price->toArray(), $request->ip());
+
+        return response()->json(['data' => [
+            'category' => $price->category->value,
+            'fixed_price_minor' => $price->fixed_price_minor,
+            'currency' => $price->currency->value,
+        ]]);
     }
 
     public function drivers(Request $request): JsonResponse
@@ -304,6 +350,9 @@ final class DirectoryController extends Controller
         $model = $this->model($type, $id);
         if ($model instanceof Car) {
             $changes = $this->validateCar($request, $model);
+            if (isset($changes['category'])) {
+                $changes = [...$changes, ...$this->categoryPriceSnapshot(CarCategory::from($changes['category']))];
+            }
             $old = $model->only(array_keys($changes));
             $model->update($changes);
             $audit->record($request->user(), 'cars.updated', $model, $old, $model->only(array_keys($changes)), $request->ip());
@@ -361,13 +410,25 @@ final class DirectoryController extends Controller
             'air_conditioning' => [$presence, 'boolean'],
             'wifi' => [$presence, 'boolean'],
             'child_seat_available' => [$presence, 'boolean'],
-            'base_price_minor' => [$presence, 'integer', 'min:0'],
-            'price_per_km_minor' => [$presence, 'integer', 'min:0'],
-            'price_per_hour_minor' => [$presence, 'integer', 'min:0'],
-            'currency' => [$presence, Rule::enum(CurrencyCode::class)],
             'active' => [$presence, 'boolean'],
             'available_for_booking' => [$presence, 'boolean'],
         ]);
+    }
+
+    /** @return array{base_price_minor: int, price_per_km_minor: int, price_per_hour_minor: int, currency: string} */
+    private function categoryPriceSnapshot(CarCategory $category): array
+    {
+        $price = CarCategoryPrice::query()->firstOrCreate(
+            ['category' => $category->value],
+            ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+        );
+
+        return [
+            'base_price_minor' => $price->fixed_price_minor,
+            'price_per_km_minor' => 0,
+            'price_per_hour_minor' => 0,
+            'currency' => $price->currency->value,
+        ];
     }
 
     private function perPage(Request $request): int
