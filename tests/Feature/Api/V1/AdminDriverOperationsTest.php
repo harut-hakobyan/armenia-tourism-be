@@ -28,6 +28,13 @@ final class AdminDriverOperationsTest extends TestCase
     public function test_manager_can_create_edit_and_soft_delete_cars(): void
     {
         $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $this->actingAs($manager)->getJson('/api/v1/admin/directory/car-category-prices')
+            ->assertOk()
+            ->assertJsonPath('data.6.category', 'bus');
+        $this->actingAs($manager)->patchJson('/api/v1/admin/directory/car-category-prices/minivan', [
+            'fixed_price_minor' => 22200,
+            'currency' => 'EUR',
+        ])->assertOk()->assertJsonPath('data.fixed_price_minor', 22200);
         $payload = [
             'brand' => 'Volkswagen', 'model' => 'Crafter', 'year' => 2025,
             'plate_number' => 'AMT-777', 'color' => 'Silver', 'category' => 'minivan',
@@ -40,7 +47,10 @@ final class AdminDriverOperationsTest extends TestCase
 
         $created = $this->actingAs($manager)->postJson('/api/v1/admin/directory/cars', $payload)
             ->assertCreated()
-            ->assertJsonPath('data.plate_number', 'AMT-777');
+            ->assertJsonPath('data.plate_number', 'AMT-777')
+            ->assertJsonPath('data.base_price_minor', 22200)
+            ->assertJsonPath('data.price_per_km_minor', 0)
+            ->assertJsonPath('data.price_per_hour_minor', 0);
         $carId = (int) $created->json('data.id');
 
         $this->actingAs($manager)->patchJson("/api/v1/admin/directory/cars/{$carId}", [

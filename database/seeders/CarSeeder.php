@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Enums\CarCategory;
 use App\Enums\CurrencyCode;
 use App\Models\Car;
+use App\Models\CarCategoryPrice;
 use Illuminate\Database\Seeder;
 
 final class CarSeeder extends Seeder
@@ -23,6 +24,10 @@ final class CarSeeder extends Seeder
         ];
 
         foreach ($cars as [$brand, $model, $year, $plate, $color, $category, $passengers, $luggage, $base, $perKm, $perHour]) {
+            CarCategoryPrice::query()->updateOrCreate(
+                ['category' => $category],
+                ['fixed_price_minor' => $base, 'currency' => CurrencyCode::Eur],
+            );
             Car::query()->updateOrCreate(
                 ['plate_number' => $plate],
                 [
@@ -38,8 +43,8 @@ final class CarSeeder extends Seeder
                     'wifi' => $category !== CarCategory::Economy,
                     'child_seat_available' => true,
                     'base_price_minor' => $base,
-                    'price_per_km_minor' => $perKm,
-                    'price_per_hour_minor' => $perHour,
+                    'price_per_km_minor' => 0,
+                    'price_per_hour_minor' => 0,
                     'currency' => CurrencyCode::Eur,
                     'active' => true,
                     'available_for_booking' => true,

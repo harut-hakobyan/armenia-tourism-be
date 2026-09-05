@@ -128,7 +128,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.extra_waiting_minutes', 30);
 
         $this->assertGreaterThan(0, $transfer->json('data.estimated_distance_meters'));
-        $this->assertGreaterThan(7000, $transfer->json('data.price.total_minor'));
+        $this->assertSame(7000, $transfer->json('data.price.total_minor'));
 
         $this->postJson('/api/v1/private-driver/estimate', [
             'car_id' => $car->id,
@@ -137,7 +137,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.service_type', 'private_driver')
             ->assertJsonPath('data.package_code', '8_hours')
-            ->assertJsonPath('data.price.total_minor', 19800);
+            ->assertJsonPath('data.price.total_minor', 7000);
 
         $custom = $this->postJson('/api/v1/custom-trips/estimate', [
             'car_id' => $car->id,
@@ -151,6 +151,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             $custom->json('data.estimated_driving_minutes'),
             $custom->json('data.estimated_duration_minutes'),
         );
+        $this->assertSame(7000, $custom->json('data.price.total_minor'));
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
     }
 
