@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\BookingStatus;
+use App\Enums\CurrencyCode;
 use App\Enums\DriverTripStatus;
+use App\Enums\GroupTourDepartureStatus;
 use App\Enums\UserRole;
 use App\Models\Booking;
 use App\Models\Car;
@@ -55,7 +57,20 @@ final class AdminDriverOperationsTest extends TestCase
     {
         $this->seed();
         $manager = User::factory()->create(['role' => UserRole::Manager]);
-        $car = Car::query()->whereHas('groupTourDepartures', fn ($query) => $query->where('starts_at', '>', now()))->firstOrFail();
+        $car = Car::query()->firstOrFail();
+        $tour = Tour::query()->where('format', 'group')->firstOrFail();
+        $startsAt = now()->addDay();
+        $tour->groupDepartures()->create([
+            'car_id' => $car->id,
+            'starts_at' => $startsAt,
+            'ends_at' => $startsAt->copy()->addHours(8),
+            'meeting_point' => 'Republic Square, Yerevan',
+            'capacity' => $car->passenger_capacity,
+            'price_per_person_minor' => 2500,
+            'currency' => CurrencyCode::Eur,
+            'status' => GroupTourDepartureStatus::Scheduled,
+            'active' => true,
+        ]);
 
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/cars/{$car->id}")
             ->assertUnprocessable()
