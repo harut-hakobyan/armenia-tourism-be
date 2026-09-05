@@ -33,7 +33,7 @@ final class DirectoryController extends Controller
 {
     public function tours(Request $request): JsonResponse
     {
-        $tours = Tour::query()->with(['translations', 'media'])->orderBy('sort_order')->paginate($this->perPage($request));
+        $tours = Tour::query()->with(['translations', 'media', 'stops.destination.translations'])->orderBy('sort_order')->paginate($this->perPage($request));
 
         return response()->json($tours->through(fn (Tour $tour): array => (new AdminTourResource($tour))->resolve($request)));
     }
@@ -61,27 +61,33 @@ final class DirectoryController extends Controller
     {
         $tour = DB::transaction(function () use ($request): Tour {
             $validated = $request->validated();
-            $tour = Tour::query()->create(Arr::except($validated, 'translations'));
+            $tour = Tour::query()->create(Arr::except($validated, ['translations', 'itinerary']));
             $this->syncTranslations($tour, $validated['translations']);
+            if (isset($validated['itinerary'])) {
+                $this->syncTourItinerary($tour, $validated['itinerary']);
+            }
 
             return $tour;
         });
         $audit->record($request->user(), 'tours.created', $tour, [], $tour->toArray(), $request->ip());
 
-        return response()->json(['data' => (new AdminTourResource($tour->load(['translations', 'media'])))->resolve($request)], 201);
+        return response()->json(['data' => (new AdminTourResource($tour->load(['translations', 'media', 'stops.destination.translations'])))->resolve($request)], 201);
     }
 
     public function updateTour(UpsertTourRequest $request, Tour $tour, AuditLogger $audit): JsonResponse
     {
-        $old = $tour->load('translations')->toArray();
+        $old = $tour->load(['translations', 'stops'])->toArray();
         DB::transaction(function () use ($request, $tour): void {
             $validated = $request->validated();
-            $tour->update(Arr::except($validated, 'translations'));
+            $tour->update(Arr::except($validated, ['translations', 'itinerary']));
             if (isset($validated['translations'])) {
                 $this->syncTranslations($tour, $validated['translations']);
             }
+            if (isset($validated['itinerary'])) {
+                $this->syncTourItinerary($tour, $validated['itinerary']);
+            }
         });
-        $tour->refresh()->load(['translations', 'media']);
+        $tour->refresh()->load(['translations', 'media', 'stops.destination.translations']);
         $audit->record($request->user(), 'tours.updated', $tour, $old, $tour->toArray(), $request->ip());
 
         return response()->json(['data' => (new AdminTourResource($tour))->resolve($request)]);
@@ -94,6 +100,39 @@ final class DirectoryController extends Controller
         $audit->record($request->user(), 'tours.deleted', $tour, $old, [], $request->ip());
 
         return response()->json([], 204);
+    }
+
+    /** @param array<int, array<string, mixed>> $itinerary */
+    private function syncTourItinerary(Tour $tour, array $itinerary): void
+    {
+        $tour->stops()->delete();
+
+        $dayNumbers = collect($itinerary)->pluck('day_number')->unique()->values();
+        if ($dayNumbers->isEmpty()) {
+            $tour->days()->delete();
+
+            return;
+        }
+
+        $tour->days()->whereNotIn('day_number', $dayNumbers)->delete();
+        $days = $dayNumbers->mapWithKeys(fn (int $dayNumber): array => [
+            $dayNumber => $tour->days()->firstOrCreate(['day_number' => $dayNumber])->id,
+        ]);
+        $orders = [];
+
+        foreach ($itinerary as $stop) {
+            $dayNumber = (int) $stop['day_number'];
+            $orders[$dayNumber] = ($orders[$dayNumber] ?? 0) + 1;
+            $tour->stops()->create([
+                'tour_day_id' => $days->get($dayNumber),
+                'destination_id' => $stop['destination_id'],
+                'day_number' => $dayNumber,
+                'stop_order' => $orders[$dayNumber],
+                'duration_minutes' => $stop['duration_minutes'] ?? null,
+                'optional' => $stop['optional'],
+                'notes' => $stop['notes'] ?? null,
+            ]);
+        }
     }
 
     public function storeDestination(UpsertDestinationRequest $request, AuditLogger $audit): JsonResponse

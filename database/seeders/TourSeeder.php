@@ -6,13 +6,9 @@ namespace Database\Seeders;
 
 use App\Enums\CarCategory;
 use App\Enums\CurrencyCode;
-use App\Enums\GroupTourDepartureStatus;
 use App\Enums\PricingType;
 use App\Enums\TourFormat;
-use App\Models\Car;
 use App\Models\Destination;
-use App\Models\Driver;
-use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\TourDay;
@@ -104,6 +100,8 @@ final class TourSeeder extends Seeder
                     'currency' => CurrencyCode::Eur,
                     'pricing_type' => isset($data['format']) ? PricingType::PerPerson : PricingType::PerCar,
                     'format' => $data['format'] ?? TourFormat::Private,
+                    'start_time' => isset($data['format']) ? '09:00' : null,
+                    'meeting_point' => isset($data['format']) ? 'Republic Square, Yerevan' : null,
                     'active' => true,
                     'featured' => $data['featured'],
                     'max_passengers' => isset($data['format']) ? 7 : 7,
@@ -173,8 +171,6 @@ final class TourSeeder extends Seeder
                 $this->seedPrice($tour, CarCategory::Comfort, $data['price'], 0);
                 $this->seedPrice($tour, CarCategory::Suv, null, 4000);
                 $this->seedPrice($tour, CarCategory::Minivan, null, 6000);
-            } else {
-                $this->seedGroupDepartures($tour);
             }
         }
     }
@@ -194,30 +190,5 @@ final class TourSeeder extends Seeder
                 'active' => true,
             ],
         );
-    }
-
-    private function seedGroupDepartures(Tour $tour): void
-    {
-        $car = Car::query()->where('plate_number', 'AMT-501')->firstOrFail();
-        $driver = Driver::query()->where('preferred_car_id', $car->id)->first();
-        $firstSaturday = now()->startOfDay()->next('Saturday')->setTime(9, 0);
-
-        foreach (range(0, 5) as $week) {
-            $startsAt = $firstSaturday->copy()->addWeeks($week);
-            GroupTourDeparture::query()->updateOrCreate(
-                ['tour_id' => $tour->id, 'starts_at' => $startsAt],
-                [
-                    'car_id' => $car->id,
-                    'driver_id' => $driver?->id,
-                    'ends_at' => $startsAt->copy()->addMinutes($tour->duration_minutes),
-                    'meeting_point' => 'Republic Square, Yerevan',
-                    'capacity' => min(7, $car->passenger_capacity),
-                    'price_per_person_minor' => $tour->starting_price_minor,
-                    'currency' => $tour->currency,
-                    'status' => GroupTourDepartureStatus::Scheduled,
-                    'active' => true,
-                ],
-            );
-        }
     }
 }

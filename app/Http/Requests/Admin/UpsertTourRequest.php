@@ -32,6 +32,8 @@ final class UpsertTourRequest extends FormRequest
             'currency' => [$required, Rule::enum(CurrencyCode::class)],
             'pricing_type' => [$required, Rule::enum(PricingType::class)],
             'format' => [$required, Rule::enum(TourFormat::class)],
+            'start_time' => ['nullable', 'required_if:format,group', 'date_format:H:i'],
+            'meeting_point' => ['nullable', 'required_if:format,group', 'string', 'max:255'],
             'active' => [$required, 'boolean'],
             'featured' => [$required, 'boolean'],
             'max_passengers' => ['nullable', 'integer', 'min:1', 'max:255'],
@@ -46,6 +48,12 @@ final class UpsertTourRequest extends FormRequest
             'translations.*.description' => ['nullable', 'string'],
             'translations.*.seo_title' => ['nullable', 'string', 'max:255'],
             'translations.*.seo_description' => ['nullable', 'string', 'max:1000'],
+            'itinerary' => ['sometimes', 'array', 'max:100'],
+            'itinerary.*.destination_id' => ['required', 'integer', Rule::exists('destinations', 'id')->whereNull('deleted_at')],
+            'itinerary.*.day_number' => ['required', 'integer', 'min:1', 'max:365'],
+            'itinerary.*.duration_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'itinerary.*.optional' => ['required', 'boolean'],
+            'itinerary.*.notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

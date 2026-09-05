@@ -26,6 +26,8 @@ final class AdminTourResource extends JsonResource
             'currency' => $this->currency->value,
             'pricing_type' => $this->pricing_type->value,
             'format' => $this->format->value,
+            'start_time' => $this->start_time ? substr((string) $this->start_time, 0, 5) : null,
+            'meeting_point' => $this->meeting_point,
             'active' => $this->active,
             'featured' => $this->featured,
             'max_passengers' => $this->max_passengers,
@@ -36,6 +38,25 @@ final class AdminTourResource extends JsonResource
             'translations' => $this->translations->map->only([
                 'locale', 'title', 'short_description', 'description', 'seo_title', 'seo_description',
             ])->values(),
+            'itinerary' => $this->whenLoaded('stops', fn () => $this->stops->map(static function ($stop): array {
+                $translation = $stop->destination?->translations->firstWhere('locale', 'en')
+                    ?? $stop->destination?->translations->first();
+
+                return [
+                    'id' => $stop->id,
+                    'destination_id' => $stop->destination_id,
+                    'day_number' => $stop->day_number,
+                    'stop_order' => $stop->stop_order,
+                    'duration_minutes' => $stop->duration_minutes,
+                    'optional' => $stop->optional,
+                    'notes' => $stop->notes,
+                    'destination' => $stop->destination ? [
+                        'id' => $stop->destination->id,
+                        'slug' => $stop->destination->slug,
+                        'name' => $translation?->name,
+                    ] : null,
+                ];
+            })),
             'cover_image' => $cover ? new MediaResource($cover) : null,
             'gallery' => MediaResource::collection(
                 $this->media->where('collection', 'gallery')->values(),
