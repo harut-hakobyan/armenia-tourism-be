@@ -6,11 +6,8 @@ namespace App\Services\Pricing;
 
 use App\Data\PriceBreakdown;
 use App\Enums\CurrencyCode;
-use App\Enums\GroupTourDepartureStatus;
 use App\Enums\PricingType;
-use App\Enums\TourFormat;
 use App\Models\Car;
-use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use App\Models\TourPrice;
 use Carbon\CarbonImmutable;
@@ -83,37 +80,6 @@ final class PricingService
                 'duration' => $billableHours * $car->price_per_hour_minor,
             ],
             $car->currency,
-            $promoCode,
-            $customerEmail,
-        );
-    }
-
-    public function calculateGroupTour(
-        Tour $tour,
-        GroupTourDeparture $departure,
-        int $passengers,
-        ?string $promoCode = null,
-        ?string $customerEmail = null,
-    ): PriceBreakdown {
-        if (! $tour->active || $tour->format !== TourFormat::Group) {
-            throw new DomainException('The selected tour is not an active group tour.');
-        }
-        if (! $departure->active || $departure->status !== GroupTourDepartureStatus::Scheduled) {
-            throw new DomainException('The selected group departure is not bookable.');
-        }
-        if ($departure->tour_id !== $tour->id || $passengers < 1 || $passengers > $departure->capacity) {
-            throw new InvalidArgumentException('Invalid passenger count for this group departure.');
-        }
-        if ($departure->currency !== $tour->currency) {
-            throw new DomainException('Tour and departure currencies do not match.');
-        }
-
-        $perPersonMinor = $departure->price_per_person_minor ?? $tour->starting_price_minor;
-
-        return $this->buildBreakdown(
-            $perPersonMinor * $passengers,
-            [],
-            $departure->currency,
             $promoCode,
             $customerEmail,
         );

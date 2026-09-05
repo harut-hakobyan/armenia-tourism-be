@@ -20,7 +20,6 @@ final class TourEstimateRequest extends FormRequest
             'locale' => ['nullable', 'in:en,ru,hy'],
             'tour_id' => ['required', 'integer', 'exists:tours,id'],
             'car_id' => ['nullable', 'integer', 'exists:cars,id'],
-            'group_tour_departure_id' => ['nullable', 'integer', 'exists:group_tour_departures,id'],
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'passengers' => ['required', 'integer', 'min:1', 'max:20'],
             'promo_code' => ['nullable', 'string', 'max:50'],

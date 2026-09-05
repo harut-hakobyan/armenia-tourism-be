@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\UserRole;
+use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,5 +106,26 @@ final class CatalogManagementTest extends TestCase
 
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/destinations/{$id}")->assertNoContent();
         $this->assertSoftDeleted('destinations', ['id' => $id]);
+    }
+
+    public function test_admin_can_update_a_group_tour_schedule(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
+
+        $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$tour->id}", [
+            'format' => 'group',
+            'start_time' => '08:30',
+            'meeting_point' => 'Cascade Complex, Yerevan',
+        ])->assertOk()
+            ->assertJsonPath('data.start_time', '08:30')
+            ->assertJsonPath('data.meeting_point', 'Cascade Complex, Yerevan');
+
+        $this->assertDatabaseHas('tours', [
+            'id' => $tour->id,
+            'start_time' => '08:30',
+            'meeting_point' => 'Cascade Complex, Yerevan',
+        ]);
     }
 }

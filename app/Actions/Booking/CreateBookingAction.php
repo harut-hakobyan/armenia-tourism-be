@@ -21,7 +21,6 @@ use App\Exceptions\IdempotencyConflictException;
 use App\Models\Booking;
 use App\Models\Car;
 use App\Models\CustomTripBookingDetail;
-use App\Models\GroupTourDeparture;
 use App\Models\PromoCode;
 use App\Models\Tour;
 use App\Services\Availability\AvailabilityService;
@@ -82,50 +81,31 @@ final class CreateBookingAction
             $tour = $data->serviceType === ServiceType::Tour
                 ? Tour::query()->with('translations')->lockForUpdate()->findOrFail($data->tourId)
                 : null;
-            $departure = $data->groupTourDepartureId
-                ? GroupTourDeparture::query()->lockForUpdate()->findOrFail($data->groupTourDepartureId)
-                : null;
-
-            if ($tour?->format === TourFormat::Group) {
-                if (! $departure || $departure->tour_id !== $tour->id || ! $departure->active
-                    || $departure->status->value !== 'scheduled' || $departure->starts_at->isPast()) {
-                    throw new BookingUnavailableException('The selected group departure is not bookable.');
-                }
-                $bookedSeats = (int) Booking::query()
-                    ->where('group_tour_departure_id', $departure->id)
-                    ->whereNotIn('booking_status', [BookingStatus::Cancelled->value, BookingStatus::NoShow->value])
-                    ->sum('passengers');
-                if ($bookedSeats + $data->passengers > $departure->capacity) {
-                    throw new BookingUnavailableException('Not enough seats remain for this group departure.');
-                }
-            } elseif ($departure) {
-                throw new BookingUnavailableException('A group departure cannot be used for this service.');
-            }
-
-            $carId = $departure?->car_id ?? $data->carId;
+            $carId = $data->carId;
             if (! $carId) {
                 throw new BookingUnavailableException('A car is required for this booking.');
             }
             $car = Car::query()->where('active', true)->where('available_for_booking', true)
                 ->lockForUpdate()->find($carId);
             if (! $car) {
-                throw new BookingUnavailableException('The selected departure does not have an available car.');
+                throw new BookingUnavailableException('The selected vehicle is not available.');
             }
-            if ($departure && $departure->capacity > $car->passenger_capacity) {
-                throw new BookingUnavailableException('The selected departure vehicle does not have enough passenger capacity.');
-            }
-            $startsAt = $departure?->starts_at ?? $data->startsAt;
-            $endsAt = $departure?->ends_at ?? $this->plannedEnd($data, $tour, $route);
+            $startsAt = $tour?->format === TourFormat::Group && $tour->start_time
+                ? $data->startsAt->setTimeFromTimeString((string) $tour->start_time)
+                : $data->startsAt;
+            $endsAt = $data->serviceType === ServiceType::Tour
+                ? $startsAt->addMinutes($tour->duration_minutes)
+                : $this->plannedEnd($data, $tour, $route);
 
             $promo = $data->promoCode
                 ? PromoCode::query()->where('code', mb_strtoupper(trim($data->promoCode)))->lockForUpdate()->first()
                 : null;
 
-            if (! $departure && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
+            if ($tour?->format !== TourFormat::Group && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
                 throw new BookingUnavailableException('The selected car is no longer available for this time.');
             }
 
-            $price = $this->calculatePrice($data, $car, $tour, $departure, $route, $startsAt);
+            $price = $this->calculatePrice($data, $car, $tour, $route, $startsAt);
             $customer = $this->customers->resolve($data);
             $uuid = (string) Str::uuid();
             $secureToken = $this->tokens->tokenForUuid($uuid);
@@ -140,16 +120,18 @@ final class CreateBookingAction
                 'request_fingerprint' => $fingerprint,
                 'customer_id' => $customer->id,
                 'tour_id' => $tour?->id,
-                'group_tour_departure_id' => $departure?->id,
+                'group_tour_departure_id' => null,
                 'car_id' => $car->id,
-                'driver_id' => $departure?->driver_id,
+                'driver_id' => null,
                 'promo_code_id' => $promo?->id,
                 'service_type' => $data->serviceType,
                 'booking_date' => $startsAt->toDateString(),
                 'pickup_time' => $startsAt->format('H:i:s'),
                 'starts_at' => $startsAt,
                 'planned_end_at' => $endsAt,
-                'pickup_address' => $data->pickupAddress,
+                'pickup_address' => $tour?->format === TourFormat::Group
+                    ? ($tour->meeting_point ?? $data->pickupAddress)
+                    : $data->pickupAddress,
                 'pickup_latitude' => $data->pickupLatitude,
                 'pickup_longitude' => $data->pickupLongitude,
                 'dropoff_address' => $data->dropoffAddress,
@@ -175,7 +157,7 @@ final class CreateBookingAction
                 'price_breakdown' => $price->toArray(),
             ]);
 
-            $this->storeServiceDetails($booking, $data, $tour, $departure, $route);
+            $this->storeServiceDetails($booking, $data, $tour, $route);
             $booking->statusHistory()->create([
                 'from_status' => null,
                 'to_status' => BookingStatus::Pending,
@@ -227,23 +209,18 @@ final class CreateBookingAction
         CreateBookingData $data,
         Car $car,
         ?Tour $tour,
-        ?GroupTourDeparture $departure,
         ?RouteResult $route,
         CarbonImmutable $startsAt,
     ): PriceBreakdown {
         return match ($data->serviceType) {
-            ServiceType::Tour => $departure
-                ? $this->pricing->calculateGroupTour(
-                    $tour, $departure, $data->passengers, $data->promoCode, $data->normalizedEmail(),
-                )
-                : $this->pricing->calculateTour(
-                    $tour,
-                    $car,
-                    $data->passengers,
-                    $startsAt,
-                    $data->promoCode,
-                    $data->normalizedEmail(),
-                ),
+            ServiceType::Tour => $this->pricing->calculateTour(
+                $tour,
+                $car,
+                $data->passengers,
+                $startsAt,
+                $data->promoCode,
+                $data->normalizedEmail(),
+            ),
             ServiceType::AirportTransfer => $this->pricing->calculateTransfer(
                 $car,
                 $route->distanceMeters,
@@ -273,7 +250,6 @@ final class CreateBookingAction
         Booking $booking,
         CreateBookingData $data,
         ?Tour $tour,
-        ?GroupTourDeparture $departure,
         ?RouteResult $route,
     ): void {
         match ($data->serviceType) {
@@ -285,8 +261,10 @@ final class CreateBookingAction
                     'distance_km' => $tour->approximate_distance_km,
                     'pricing_type' => $tour->pricing_type->value,
                     'format' => $tour->format->value,
-                    'group_tour_departure_id' => $departure?->id,
-                    'meeting_point' => $departure?->meeting_point,
+                    'start_time' => $tour->format === TourFormat::Group
+                        ? substr((string) $tour->start_time, 0, 5)
+                        : null,
+                    'meeting_point' => $tour->format === TourFormat::Group ? $tour->meeting_point : null,
                     'translations' => $tour->translations->mapWithKeys(
                         static fn ($translation): array => [$translation->locale => $translation->title],
                     )->all(),

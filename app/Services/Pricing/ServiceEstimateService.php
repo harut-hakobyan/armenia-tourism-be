@@ -10,7 +10,6 @@ use App\Data\RoutePoint;
 use App\Data\RouteResult;
 use App\Enums\ServiceType;
 use App\Models\Car;
-use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use Carbon\CarbonImmutable;
 
@@ -35,8 +34,13 @@ final class ServiceEstimateService
         return [
             'service_type' => ServiceType::Tour->value,
             'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
+            'tour_format' => $tour->format->value,
             'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
             'booking_date' => $date->toDateString(),
+            'starts_at' => $tour->start_time
+                ? $date->setTimeFromTimeString((string) $tour->start_time)->toIso8601String()
+                : null,
+            'meeting_point' => $tour->meeting_point,
             'passengers' => $passengers,
             'duration_minutes' => $tour->duration_minutes,
             'pricing_type' => $tour->pricing_type->value,
@@ -73,43 +77,6 @@ final class ServiceEstimateService
             $route->drivingDurationMinutes + $extraWaitingMinutes,
             ['extra_waiting_minutes' => $extraWaitingMinutes],
         );
-    }
-
-    /** @return array<string, mixed> */
-    public function groupTour(
-        Tour $tour,
-        GroupTourDeparture $departure,
-        int $passengers,
-        ?string $promoCode = null,
-        ?string $customerEmail = null,
-    ): array {
-        $car = $departure->car;
-        if (! $car || ! $car->active || ! $car->available_for_booking) {
-            throw new \DomainException('The selected group departure does not have an available vehicle.');
-        }
-        $price = $this->pricing->calculateGroupTour(
-            $tour,
-            $departure,
-            $passengers,
-            $promoCode,
-            $customerEmail,
-        );
-
-        return [
-            'service_type' => ServiceType::Tour->value,
-            'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
-            'tour_format' => 'group',
-            'group_tour_departure_id' => $departure->id,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
-            'booking_date' => $departure->starts_at->toDateString(),
-            'starts_at' => $departure->starts_at->toIso8601String(),
-            'meeting_point' => $departure->meeting_point,
-            'passengers' => $passengers,
-            'duration_minutes' => $tour->duration_minutes,
-            'pricing_type' => 'per_person',
-            'remaining_seats' => $departure->remainingSeats(),
-            'price' => $price->toArray(),
-        ];
     }
 
     /** @return array<string, mixed> */

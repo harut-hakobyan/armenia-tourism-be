@@ -6,7 +6,6 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Car;
 use App\Models\Destination;
-use App\Models\GroupTourDeparture;
 use App\Models\Tour;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -83,8 +82,9 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.format', 'group')
             ->assertJsonPath('data.starting_price.pricing_type', 'per_person')
-            ->assertJsonCount(6, 'data.upcoming_departures');
-        $this->assertSame(7, $groupTour->json('data.upcoming_departures.0.remaining_seats'));
+            ->assertJsonPath('data.start_time', '09:00')
+            ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
+            ->assertJsonMissingPath('data.upcoming_departures');
 
         $this->getJson('/api/v1/cars?passengers=7&luggage=5&sort=capacity_desc')
             ->assertOk()
@@ -154,24 +154,23 @@ final class PublicCatalogAndEstimateTest extends TestCase
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
     }
 
-    public function test_group_departure_with_deleted_car_is_hidden_and_returns_validation_error(): void
+    public function test_group_tour_estimate_uses_tour_schedule_without_a_departure(): void
     {
         $this->seed();
         $tour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
-        $departure = GroupTourDeparture::query()->where('tour_id', $tour->id)->firstOrFail();
-        $departure->car()->firstOrFail()->delete();
-
-        $this->getJson("/api/v1/tours/{$tour->slug}?locale=en")
-            ->assertOk()
-            ->assertJsonCount(0, 'data.upcoming_departures');
+        $car = Car::query()->where('plate_number', 'AMT-501')->firstOrFail();
+        $date = now()->addDays(14)->toDateString();
 
         $this->postJson('/api/v1/pricing/tours/estimate', [
             'tour_id' => $tour->id,
-            'group_tour_departure_id' => $departure->id,
-            'booking_date' => $departure->starts_at->toDateString(),
+            'car_id' => $car->id,
+            'booking_date' => $date,
             'passengers' => 2,
-        ])->assertUnprocessable()
-            ->assertJsonPath('errors.group_tour_departure_id.0', 'The selected group departure does not have an available vehicle.');
+        ])->assertOk()
+            ->assertJsonPath('data.tour_format', 'group')
+            ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
+            ->assertJsonPath('data.passengers', 2)
+            ->assertJsonPath('data.price.total_minor', 5000);
     }
 
     public function test_estimate_matches_booking_and_invalid_capacity_is_a_safe_validation_error(): void
