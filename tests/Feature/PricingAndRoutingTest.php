@@ -80,7 +80,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(6000, $price->totalMinor);
     }
 
-    public function test_custom_trip_uses_the_fixed_car_category_price(): void
+    public function test_custom_trip_uses_the_fixed_car_type_price(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
@@ -93,7 +93,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(7000, $price->totalMinor);
     }
 
-    public function test_custom_trip_multiplies_category_price_for_unlimited_vehicle_units(): void
+    public function test_custom_trip_multiplies_type_price_for_unlimited_vehicle_units(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
@@ -118,7 +118,7 @@ final class PricingAndRoutingTest extends TestCase
             $car,
             100_000,
             180,
-            4,
+            5,
             allowMultipleVehicles: false,
         );
     }

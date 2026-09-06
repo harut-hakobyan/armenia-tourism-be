@@ -36,7 +36,7 @@ final class ServiceEstimateService
             'service_type' => ServiceType::Tour->value,
             'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
             'tour_format' => $tour->format->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'booking_date' => $date->toDateString(),
             'starts_at' => $tour->start_time
                 ? $date->setTimeFromTimeString((string) $tour->start_time)->toIso8601String()
@@ -98,7 +98,7 @@ final class ServiceEstimateService
 
         return [
             'service_type' => ServiceType::PrivateDriver->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'passengers' => $passengers,
             'duration_minutes' => $durationMinutes,
             'package_code' => match ($durationMinutes) {
@@ -146,7 +146,7 @@ final class ServiceEstimateService
             $route->estimatedTourDurationMinutes,
             [
                 'vehicle_allocation' => [
-                    'category' => $car->category->value,
+                    'type' => $car->type->value,
                     'count' => $this->pricing->customTripVehicleCount($car, $passengers),
                     'capacity_per_vehicle' => $car->passenger_capacity,
                 ],
@@ -168,7 +168,7 @@ final class ServiceEstimateService
     ): array {
         return [
             'service_type' => $type->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'passengers' => $passengers,
             'estimated_distance_meters' => $route->distanceMeters,
             'estimated_driving_minutes' => $route->drivingDurationMinutes,

@@ -97,8 +97,8 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/directory/destinations/{destination}', [DirectoryController::class, 'updateDestination']);
         Route::delete('/directory/destinations/{destination}', [DirectoryController::class, 'destroyDestination']);
         Route::get('/directory/cars', [DirectoryController::class, 'cars']);
-        Route::get('/directory/car-category-prices', [DirectoryController::class, 'carCategoryPrices']);
-        Route::patch('/directory/car-category-prices/{category}', [DirectoryController::class, 'updateCarCategoryPrice']);
+        Route::get('/directory/car-type-prices', [DirectoryController::class, 'carTypePrices']);
+        Route::patch('/directory/car-type-prices/{type}', [DirectoryController::class, 'updateCarTypePrice']);
         Route::post('/directory/cars', [DirectoryController::class, 'storeCar']);
         Route::delete('/directory/cars/{car}', [DirectoryController::class, 'destroyCar']);
         Route::get('/directory/drivers', [DirectoryController::class, 'drivers']);

@@ -22,6 +22,7 @@ final class CarResource extends JsonResource
             'year' => $this->year,
             'color' => $this->color,
             'category' => $this->category->value,
+            'type' => $this->type->value,
             'passenger_capacity' => $this->passenger_capacity,
             'luggage_capacity' => $this->luggage_capacity,
             'transmission' => $this->transmission,

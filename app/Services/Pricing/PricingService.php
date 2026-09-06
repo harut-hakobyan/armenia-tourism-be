@@ -8,7 +8,7 @@ use App\Data\PriceBreakdown;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Models\Car;
-use App\Models\CarCategoryPrice;
+use App\Models\CarTypePrice;
 use App\Models\Tour;
 use App\Models\TourPrice;
 use Carbon\CarbonImmutable;
@@ -37,7 +37,7 @@ final class PricingService
             throw new InvalidArgumentException('Passenger count exceeds the selected tour capacity.');
         }
 
-        [, $carCurrency] = $this->categoryPrice($car);
+        [, $carCurrency] = $this->typePrice($car);
         if ($tour->currency !== $carCurrency) {
             throw new DomainException('Tour and car currencies do not match.');
         }
@@ -77,7 +77,7 @@ final class PricingService
             $this->validateCar($car, $passengers);
         }
         $this->validateMeasurements($distanceMeters, $durationMinutes);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
         $vehicleCount = $allowMultipleVehicles
             ? $this->customTripVehicleCount($car, $passengers)
             : 1;
@@ -111,7 +111,7 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements($distanceMeters, 0);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
 
         return $this->buildBreakdown(
             $fixedPriceMinor,
@@ -131,7 +131,7 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements(0, $durationMinutes);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
 
         return $this->buildBreakdown(
             $fixedPriceMinor,
@@ -211,9 +211,9 @@ final class PricingService
     }
 
     /** @return array{int, CurrencyCode} */
-    private function categoryPrice(Car $car): array
+    private function typePrice(Car $car): array
     {
-        $price = CarCategoryPrice::query()->where('category', $car->category->value)->first();
+        $price = CarTypePrice::query()->where('type', $car->type->value)->first();
 
         return $price
             ? [$price->fixed_price_minor, $price->currency]

@@ -24,6 +24,7 @@ final class AdminCarResource extends JsonResource
             'plate_number' => $this->plate_number,
             'color' => $this->color,
             'category' => $this->category->value,
+            'type' => $this->type->value,
             'passenger_capacity' => $this->passenger_capacity,
             'luggage_capacity' => $this->luggage_capacity,
             'transmission' => $this->transmission,
