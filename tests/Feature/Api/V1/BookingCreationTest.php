@@ -149,6 +149,7 @@ final class BookingCreationTest extends TestCase
         $this->postJson('/api/v1/bookings', $privateDriver)->assertCreated();
 
         $customTrip = $this->basePayload('custom_trip', $cars[2]->id, $baseDate->addDays(2)->toDateString());
+        $customTrip['passengers'] = 80;
         $customTrip['route_points'] = $this->routePoints();
         $customTrip['service_options'] = ['return_to_yerevan' => true];
         $this->postJson('/api/v1/bookings', $customTrip)->assertCreated();
@@ -157,6 +158,11 @@ final class BookingCreationTest extends TestCase
         $this->assertDatabaseCount('private_driver_booking_details', 1);
         $this->assertDatabaseHas('private_driver_booking_details', ['package_code' => '8_hours']);
         $this->assertDatabaseCount('custom_trip_booking_details', 1);
+        $this->assertDatabaseHas('custom_trip_booking_details', [
+            'vehicle_category' => 'business',
+            'vehicle_count' => 20,
+            'vehicle_capacity' => 4,
+        ]);
         $this->assertDatabaseCount('custom_trip_stops', 3);
         $this->assertDatabaseCount('bookings', 3);
     }

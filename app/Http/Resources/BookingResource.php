@@ -107,6 +107,11 @@ final class BookingResource extends JsonResource
                     'estimated_driving_minutes' => $this->customTripDetail->estimated_driving_minutes,
                     'estimated_tour_minutes' => $this->customTripDetail->estimated_tour_minutes,
                     'route_provider' => $this->customTripDetail->route_provider,
+                    'vehicle_allocation' => [
+                        'category' => $this->customTripDetail->vehicle_category,
+                        'count' => $this->customTripDetail->vehicle_count,
+                        'capacity_per_vehicle' => $this->customTripDetail->vehicle_capacity,
+                    ],
                     'route' => $this->customTripDetail->route_snapshot,
                     'stops' => $this->customTripDetail->stops->map(static fn ($stop): array => [
                         'order' => $stop->stop_order,
