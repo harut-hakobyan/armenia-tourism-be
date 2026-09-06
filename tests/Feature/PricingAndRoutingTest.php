@@ -37,12 +37,12 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame($onePassenger->totalMinor, $fourPassengers->totalMinor);
     }
 
-    public function test_tour_car_modifier_and_percentage_promotion_are_applied_server_side(): void
+    public function test_private_tour_vehicle_type_supplement_and_percentage_promotion_are_applied_server_side(): void
     {
         $this->seed();
         $pricing = $this->app->make(PricingService::class);
         $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
-        $car = Car::query()->where('plate_number', 'AMT-401')->firstOrFail();
+        $car = Car::query()->where('plate_number', 'AMT-501')->firstOrFail();
 
         $price = $pricing->calculateTour(
             $tour,
@@ -54,10 +54,10 @@ final class PricingAndRoutingTest extends TestCase
         );
 
         $this->assertSame(7000, $price->baseMinor);
-        $this->assertSame(4000, $price->adjustments['car_category']);
-        $this->assertSame(11000, $price->subtotalMinor);
-        $this->assertSame(1100, $price->discountMinor);
-        $this->assertSame(9900, $price->totalMinor);
+        $this->assertSame(7000, $price->adjustments['car_type']);
+        $this->assertSame(14000, $price->subtotalMinor);
+        $this->assertSame(1400, $price->discountMinor);
+        $this->assertSame(12600, $price->totalMinor);
     }
 
     public function test_per_person_pricing_is_supported_only_when_configured_on_tour(): void
@@ -80,7 +80,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(6000, $price->totalMinor);
     }
 
-    public function test_custom_trip_uses_the_fixed_car_category_price(): void
+    public function test_custom_trip_uses_the_fixed_car_type_price(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
@@ -93,7 +93,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(7000, $price->totalMinor);
     }
 
-    public function test_custom_trip_multiplies_category_price_for_unlimited_vehicle_units(): void
+    public function test_custom_trip_multiplies_type_price_for_unlimited_vehicle_units(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
@@ -118,7 +118,7 @@ final class PricingAndRoutingTest extends TestCase
             $car,
             100_000,
             180,
-            4,
+            5,
             allowMultipleVehicles: false,
         );
     }

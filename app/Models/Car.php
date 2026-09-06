@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ final class Car extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'brand', 'model', 'year', 'plate_number', 'color', 'category',
+        'brand', 'model', 'year', 'plate_number', 'color', 'category', 'type',
         'passenger_capacity', 'luggage_capacity', 'transmission',
         'air_conditioning', 'wifi', 'child_seat_available',
         'base_price_minor', 'price_per_km_minor', 'price_per_hour_minor',
@@ -30,6 +31,7 @@ final class Car extends Model
         return [
             'year' => 'integer',
             'category' => CarCategory::class,
+            'type' => CarType::class,
             'passenger_capacity' => 'integer',
             'luggage_capacity' => 'integer',
             'air_conditioning' => 'boolean',

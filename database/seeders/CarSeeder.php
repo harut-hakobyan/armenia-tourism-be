@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Models\Car;
-use App\Models\CarCategoryPrice;
+use App\Models\CarTypePrice;
 use Illuminate\Database\Seeder;
 
 final class CarSeeder extends Seeder
@@ -15,19 +16,32 @@ final class CarSeeder extends Seeder
     public function run(): void
     {
         $cars = [
-            ['Toyota', 'Corolla', 2022, 'AMT-101', 'White', CarCategory::Economy, 4, 2, 5000, 45, 1200],
-            ['Toyota', 'Camry', 2023, 'AMT-201', 'Black', CarCategory::Comfort, 4, 2, 7000, 55, 1600],
-            ['Mercedes-Benz', 'E-Class', 2022, 'AMT-301', 'Black', CarCategory::Business, 4, 2, 11000, 75, 2500],
-            ['Toyota', 'Land Cruiser Prado', 2021, 'AMT-401', 'Silver', CarCategory::Suv, 4, 4, 12000, 85, 2800],
-            ['Mercedes-Benz', 'Vito', 2022, 'AMT-501', 'Black', CarCategory::Minivan, 7, 7, 14000, 95, 3200],
-            ['Mercedes-Benz', 'S-Class', 2023, 'AMT-601', 'Black', CarCategory::Premium, 3, 2, 18000, 120, 4000],
+            ['Toyota', 'Corolla', 2022, 'AMT-101', 'White', CarCategory::Economy, CarType::Sedan, 2],
+            ['Toyota', 'Camry', 2023, 'AMT-201', 'Black', CarCategory::Comfort, CarType::Sedan, 2],
+            ['Mercedes-Benz', 'E-Class', 2022, 'AMT-301', 'Black', CarCategory::Business, CarType::Sedan, 2],
+            ['Toyota', 'Land Cruiser Prado', 2021, 'AMT-401', 'Silver', CarCategory::Suv, CarType::Sedan, 4],
+            ['Mercedes-Benz', 'Vito', 2022, 'AMT-501', 'Black', CarCategory::Minivan, CarType::Minivan, 7],
+            ['Mercedes-Benz', 'S-Class', 2023, 'AMT-601', 'Black', CarCategory::Premium, CarType::Sedan, 2],
+            ['Mercedes-Benz', 'Sprinter', 2023, 'AMT-701', 'Black', CarCategory::Comfort, CarType::Minibus, 10],
+            ['Mercedes-Benz', 'Tourismo', 2023, 'AMT-801', 'White', CarCategory::Comfort, CarType::Bus, 20],
         ];
 
-        foreach ($cars as [$brand, $model, $year, $plate, $color, $category, $passengers, $luggage, $base, $perKm, $perHour]) {
-            CarCategoryPrice::query()->updateOrCreate(
-                ['category' => $category],
-                ['fixed_price_minor' => $base, 'currency' => CurrencyCode::Eur],
+        $typePrices = [
+            CarType::Sedan->value => 7000,
+            CarType::Minivan->value => 14000,
+            CarType::Minibus->value => 18000,
+            CarType::Bus->value => 25000,
+        ];
+
+        foreach ($typePrices as $type => $price) {
+            CarTypePrice::query()->updateOrCreate(
+                ['type' => $type],
+                ['fixed_price_minor' => $price, 'currency' => CurrencyCode::Eur],
             );
+        }
+
+        foreach ($cars as [$brand, $model, $year, $plate, $color, $category, $type, $luggage]) {
+            $base = $typePrices[$type->value];
             Car::query()->updateOrCreate(
                 ['plate_number' => $plate],
                 [
@@ -36,7 +50,8 @@ final class CarSeeder extends Seeder
                     'year' => $year,
                     'color' => $color,
                     'category' => $category,
-                    'passenger_capacity' => $passengers,
+                    'type' => $type,
+                    'passenger_capacity' => $type->passengerCapacity(),
                     'luggage_capacity' => $luggage,
                     'transmission' => 'automatic',
                     'air_conditioning' => true,

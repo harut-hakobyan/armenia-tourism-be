@@ -167,7 +167,7 @@ final class BookingCreationTest extends TestCase
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
         $payload = $this->basePayload('custom_trip', $car->id, now()->addDays(45)->toDateString());
-        $payload['passengers'] = 4;
+        $payload['passengers'] = 5;
         $payload['route_points'] = $this->routePoints();
         $payload['service_options'] = [
             'return_to_yerevan' => true,

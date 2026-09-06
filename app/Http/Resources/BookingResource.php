@@ -52,6 +52,7 @@ final class BookingResource extends JsonResource
                 'id' => $this->car->id,
                 'name' => "{$this->car->brand} {$this->car->model}",
                 'category' => $this->car->category->value,
+                'type' => $this->car->type->value,
             ]),
             'driver' => $this->whenLoaded('driver', fn (): ?array => $this->driver ? [
                 'name' => "{$this->driver->first_name} {$this->driver->last_name}",

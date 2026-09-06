@@ -153,7 +153,7 @@ final class TelegramUpdateHandler
             return;
         }
         $details = $cars->map(fn (Car $car, int $index): string => ($index + 1).'. <b>'.e("{$car->brand} {$car->model}").'</b>'
-            .' · '.e($car->plate_number)."\n   ".e(ucfirst($car->category->value)).' · '.e((string) $car->passenger_capacity).' passengers')->implode("\n\n");
+            .' · '.e($car->plate_number)."\n   ".e(ucfirst($car->type->value)).' · '.e(ucfirst($car->category->value)).' · '.e((string) $car->passenger_capacity).' passengers')->implode("\n\n");
         $rows = $cars->map(fn (Car $car, int $index): array => [[
             'text' => ($index + 1).". {$car->brand} {$car->model}",
             'callback_data' => "ac:{$booking->id}:{$car->id}",

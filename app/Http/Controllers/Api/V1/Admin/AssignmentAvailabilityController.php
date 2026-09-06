@@ -28,7 +28,8 @@ final class AssignmentAvailabilityController extends Controller
         return response()->json(['data' => [
             'cars' => $cars->map(fn (Car $car): array => [
                 'id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'plate_number' => $car->plate_number,
-                'category' => $car->category->value, 'passenger_capacity' => $car->passenger_capacity,
+                'category' => $car->category->value, 'type' => $car->type->value,
+                'passenger_capacity' => $car->passenger_capacity,
             ])->values(),
             'drivers' => $drivers->map(fn (Driver $driver): array => [
                 'id' => $driver->id, 'name' => "{$driver->first_name} {$driver->last_name}", 'phone' => $driver->phone,

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Pricing;
 
 use App\Data\PriceBreakdown;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
+use App\Enums\TourFormat;
 use App\Models\Car;
-use App\Models\CarCategoryPrice;
+use App\Models\CarTypePrice;
 use App\Models\Tour;
-use App\Models\TourPrice;
 use Carbon\CarbonImmutable;
 use DomainException;
 use InvalidArgumentException;
@@ -37,7 +38,7 @@ final class PricingService
             throw new InvalidArgumentException('Passenger count exceeds the selected tour capacity.');
         }
 
-        [, $carCurrency] = $this->categoryPrice($car);
+        [$carTypePriceMinor, $carCurrency] = $this->typePrice($car);
         if ($tour->currency !== $carCurrency) {
             throw new DomainException('Tour and car currencies do not match.');
         }
@@ -48,15 +49,16 @@ final class PricingService
             PricingType::Custom => throw new DomainException('This tour requires a custom quote.'),
         };
 
-        $rule = $this->matchingTourPrice($tour, $car, $passengers, $date);
         $adjustments = [];
 
-        if ($rule?->fixed_price_minor !== null) {
-            $baseMinor = $rule->fixed_price_minor;
-        }
-
-        if ($rule && $rule->adjustment_minor !== 0) {
-            $adjustments['car_category'] = $rule->adjustment_minor;
+        if ($tour->format === TourFormat::Private) {
+            [$sedanPriceMinor, $sedanCurrency] = $this->typePrice(CarType::Sedan);
+            if ($sedanCurrency !== $carCurrency) {
+                throw new DomainException('Vehicle type currencies do not match.');
+            }
+            if ($carTypePriceMinor !== $sedanPriceMinor) {
+                $adjustments['car_type'] = $carTypePriceMinor - $sedanPriceMinor;
+            }
         }
 
         return $this->buildBreakdown($baseMinor, $adjustments, $tour->currency, $promoCode, $customerEmail);
@@ -77,7 +79,7 @@ final class PricingService
             $this->validateCar($car, $passengers);
         }
         $this->validateMeasurements($distanceMeters, $durationMinutes);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
         $vehicleCount = $allowMultipleVehicles
             ? $this->customTripVehicleCount($car, $passengers)
             : 1;
@@ -111,7 +113,7 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements($distanceMeters, 0);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
 
         return $this->buildBreakdown(
             $fixedPriceMinor,
@@ -131,7 +133,7 @@ final class PricingService
     ): PriceBreakdown {
         $this->validateCar($car, $passengers);
         $this->validateMeasurements(0, $durationMinutes);
-        [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        [$fixedPriceMinor, $currency] = $this->typePrice($car);
 
         return $this->buildBreakdown(
             $fixedPriceMinor,
@@ -140,20 +142,6 @@ final class PricingService
             $promoCode,
             $customerEmail,
         );
-    }
-
-    private function matchingTourPrice(Tour $tour, Car $car, int $passengers, CarbonImmutable $date): ?TourPrice
-    {
-        return $tour->prices()
-            ->where('active', true)
-            ->where('car_category', $car->category->value)
-            ->where('currency', $tour->currency->value)
-            ->where(fn ($query) => $query->whereNull('min_passengers')->orWhere('min_passengers', '<=', $passengers))
-            ->where(fn ($query) => $query->whereNull('max_passengers')->orWhere('max_passengers', '>=', $passengers))
-            ->where(fn ($query) => $query->whereNull('valid_from')->orWhereDate('valid_from', '<=', $date))
-            ->where(fn ($query) => $query->whereNull('valid_until')->orWhereDate('valid_until', '>=', $date))
-            ->orderByDesc('valid_from')
-            ->first();
     }
 
     /** @param array<string, int> $adjustments */
@@ -211,12 +199,15 @@ final class PricingService
     }
 
     /** @return array{int, CurrencyCode} */
-    private function categoryPrice(Car $car): array
+    private function typePrice(Car|CarType $carOrType): array
     {
-        $price = CarCategoryPrice::query()->where('category', $car->category->value)->first();
+        $type = $carOrType instanceof Car ? $carOrType->type : $carOrType;
+        $price = CarTypePrice::query()->where('type', $type->value)->first();
 
         return $price
             ? [$price->fixed_price_minor, $price->currency]
-            : [$car->base_price_minor, $car->currency];
+            : ($carOrType instanceof Car
+                ? [$carOrType->base_price_minor, $carOrType->currency]
+                : [0, CurrencyCode::Eur]);
     }
 }

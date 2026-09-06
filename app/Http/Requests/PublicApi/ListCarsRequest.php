@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\PublicApi;
 
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Http\Requests\PublicApi\Concerns\NormalizesQueryBooleans;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,7 @@ final class ListCarsRequest extends FormRequest
         return [
             'locale' => ['nullable', 'in:en,ru,hy'],
             'category' => ['nullable', Rule::enum(CarCategory::class)],
+            'type' => ['nullable', Rule::enum(CarType::class)],
             'passengers' => ['nullable', 'integer', 'min:1', 'max:20'],
             'luggage' => ['nullable', 'integer', 'min:0', 'max:20'],
             'child_seat' => ['nullable', 'boolean'],

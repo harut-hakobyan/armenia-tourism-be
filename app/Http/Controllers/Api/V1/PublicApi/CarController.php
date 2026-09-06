@@ -21,6 +21,7 @@ final class CarController extends Controller
             ->where('available_for_booking', true)
             ->with('media')
             ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
+            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('type', $type))
             ->when($filters['passengers'] ?? null, fn (Builder $query, int $passengers) => $query
                 ->where('passenger_capacity', '>=', $passengers))
             ->when(array_key_exists('luggage', $filters), fn (Builder $query) => $query
@@ -31,7 +32,7 @@ final class CarController extends Controller
         match ($filters['sort'] ?? 'recommended') {
             'price_asc' => $query->orderBy('base_price_minor'),
             'capacity_desc' => $query->orderByDesc('passenger_capacity'),
-            default => $query->orderBy('category')->orderBy('base_price_minor'),
+            default => $query->orderBy('type')->orderBy('category')->orderBy('base_price_minor'),
         };
 
         return CarResource::collection(
