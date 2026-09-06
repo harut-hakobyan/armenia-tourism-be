@@ -89,6 +89,44 @@ final class CmsAndAuditTest extends TestCase
             ->assertOk()->assertJsonCount(3, 'data');
     }
 
+    public function test_promo_code_creation_requires_currency_and_only_admin_can_remove_it(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+
+        $payload = [
+            'code' => 'ALLTOURS',
+            'type' => 'fixed',
+            'value' => 500,
+            'active' => true,
+        ];
+
+        $this->actingAs($manager)->postJson('/api/v1/admin/promo-codes', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('currency');
+
+        $promoId = $this->actingAs($manager)->postJson('/api/v1/admin/promo-codes', [
+            ...$payload,
+            'currency' => 'USD',
+        ])->assertCreated()
+            ->assertJsonPath('data.currency', 'USD')
+            ->json('data.id');
+
+        $this->actingAs($manager)->deleteJson("/api/v1/admin/promo-codes/{$promoId}")
+            ->assertForbidden();
+        $this->assertDatabaseHas('promo_codes', ['id' => $promoId, 'deleted_at' => null]);
+
+        $this->actingAs($admin)->deleteJson("/api/v1/admin/promo-codes/{$promoId}")
+            ->assertNoContent();
+        $this->assertSoftDeleted('promo_codes', ['id' => $promoId]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'promo_code.deleted',
+            'subject_id' => $promoId,
+        ]);
+    }
+
     public function test_admin_can_upload_validated_public_media(): void
     {
         Storage::fake('public');

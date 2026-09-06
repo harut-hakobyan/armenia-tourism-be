@@ -60,6 +60,28 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(12600, $price->totalMinor);
     }
 
+    public function test_promotion_is_available_to_every_tour_with_the_same_currency(): void
+    {
+        $this->seed();
+        $pricing = $this->app->make(PricingService::class);
+        $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
+        $date = CarbonImmutable::parse('2026-09-12');
+
+        foreach (['garni-geghard', 'sevan-dilijan'] as $slug) {
+            $price = $pricing->calculateTour(
+                Tour::query()->where('slug', $slug)->firstOrFail(),
+                $car,
+                2,
+                $date,
+                'WELCOME10',
+                'guest@example.com',
+            );
+
+            $this->assertSame('WELCOME10', $price->promoCode);
+            $this->assertGreaterThan(0, $price->discountMinor);
+        }
+    }
+
     public function test_per_person_pricing_is_supported_only_when_configured_on_tour(): void
     {
         $this->seed();
