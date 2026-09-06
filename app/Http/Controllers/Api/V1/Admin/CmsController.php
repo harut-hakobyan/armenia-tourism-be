@@ -60,6 +60,15 @@ final class CmsController extends Controller
         return response()->json(['data' => $promoCode]);
     }
 
+    public function destroyPromoCode(Request $request, PromoCode $promoCode, AuditLogger $audit): JsonResponse
+    {
+        $old = $promoCode->toArray();
+        $audit->record($request->user(), 'promo_code.deleted', $promoCode, $old, [], $request->ip());
+        $promoCode->delete();
+
+        return response()->json(status: 204);
+    }
+
     public function faqs(Request $request): JsonResponse
     {
         return response()->json(Faq::query()->with('translations')->orderBy('sort_order')->paginate($this->perPage($request)));
