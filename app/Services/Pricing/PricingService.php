@@ -69,11 +69,18 @@ final class PricingService
         int $passengers = 1,
         ?string $promoCode = null,
         ?string $customerEmail = null,
+        bool $allowMultipleVehicles = true,
     ): PriceBreakdown {
-        $this->validateCarForMultipleVehicles($car, $passengers);
+        if ($allowMultipleVehicles) {
+            $this->validateCarForMultipleVehicles($car, $passengers);
+        } else {
+            $this->validateCar($car, $passengers);
+        }
         $this->validateMeasurements($distanceMeters, $durationMinutes);
         [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
-        $vehicleCount = $this->customTripVehicleCount($car, $passengers);
+        $vehicleCount = $allowMultipleVehicles
+            ? $this->customTripVehicleCount($car, $passengers)
+            : 1;
 
         return $this->buildBreakdown(
             $fixedPriceMinor,

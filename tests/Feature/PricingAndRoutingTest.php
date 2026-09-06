@@ -107,6 +107,22 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(140000, $price->totalMinor);
     }
 
+    public function test_custom_trip_can_require_one_vehicle_only(): void
+    {
+        $this->seed();
+        $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->app->make(PricingService::class)->calculateCustomTrip(
+            $car,
+            100_000,
+            180,
+            4,
+            allowMultipleVehicles: false,
+        );
+    }
+
     public function test_route_provider_calculates_route_and_delegates_authoritative_price(): void
     {
         $this->seed();

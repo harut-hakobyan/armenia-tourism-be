@@ -76,6 +76,7 @@ final class EstimateController extends Controller
             (int) $data['passengers'],
             $data['promo_code'] ?? null,
             $data['customer_email'] ?? null,
+            $request->boolean('premium_class'),
         ));
     }
 

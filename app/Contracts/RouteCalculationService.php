@@ -26,5 +26,6 @@ interface RouteCalculationService
         int $passengers = 1,
         ?string $promoCode = null,
         ?string $customerEmail = null,
+        bool $allowMultipleVehicles = true,
     ): PriceBreakdown;
 }
