@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function (): void {
+        Route::delete('/promo-codes/{promoCode}', [CmsController::class, 'destroyPromoCode']);
         Route::get('/settings', [SettingsController::class, 'index']);
         Route::patch('/settings/{setting}', [SettingsController::class, 'update']);
         Route::get('/audit-logs', [SettingsController::class, 'auditLogs']);
