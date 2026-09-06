@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
@@ -16,6 +17,7 @@ use App\Http\Resources\Admin\AdminDestinationResource;
 use App\Http\Resources\Admin\AdminDriverResource;
 use App\Http\Resources\Admin\AdminTourResource;
 use App\Models\Car;
+use App\Models\CarTypePrice;
 use App\Models\Destination;
 use App\Models\Driver;
 use App\Models\Tour;
@@ -183,10 +185,63 @@ final class DirectoryController extends Controller
 
     public function storeCar(Request $request, AuditLogger $audit): JsonResponse
     {
-        $car = Car::query()->create($this->validateCar($request));
+        $data = $this->validateCar($request);
+        $type = CarType::from($data['type']);
+        $car = Car::query()->create([
+            ...$data,
+            'passenger_capacity' => $type->passengerCapacity(),
+            ...$this->typePriceSnapshot($type),
+        ]);
         $audit->record($request->user(), 'cars.created', $car, [], $car->toArray(), $request->ip());
 
         return response()->json(['data' => (new AdminCarResource($car->load('media')))->resolve($request)], 201);
+    }
+
+    public function carTypePrices(): JsonResponse
+    {
+        $prices = collect(CarType::cases())->map(function (CarType $type): array {
+            $price = CarTypePrice::query()->firstOrCreate(
+                ['type' => $type->value],
+                ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+            );
+
+            return [
+                'type' => $type->value,
+                'passenger_capacity' => $type->passengerCapacity(),
+                'fixed_price_minor' => $price->fixed_price_minor,
+                'currency' => $price->currency->value,
+            ];
+        });
+
+        return response()->json(['data' => $prices]);
+    }
+
+    public function updateCarTypePrice(Request $request, string $type, AuditLogger $audit): JsonResponse
+    {
+        $typeEnum = CarType::tryFrom($type);
+        abort_unless($typeEnum, 404);
+        $validated = $request->validate([
+            'fixed_price_minor' => ['required', 'integer', 'min:0'],
+            'currency' => ['required', Rule::enum(CurrencyCode::class)],
+        ]);
+        $price = CarTypePrice::query()->firstOrCreate(['type' => $typeEnum->value]);
+        $old = $price->toArray();
+        $price->update($validated);
+        Car::query()->where('type', $typeEnum->value)->update([
+            'passenger_capacity' => $typeEnum->passengerCapacity(),
+            'base_price_minor' => $price->fixed_price_minor,
+            'price_per_km_minor' => 0,
+            'price_per_hour_minor' => 0,
+            'currency' => $price->currency->value,
+        ]);
+        $audit->record($request->user(), 'car_type_prices.updated', $price, $old, $price->toArray(), $request->ip());
+
+        return response()->json(['data' => [
+            'type' => $price->type->value,
+            'passenger_capacity' => $typeEnum->passengerCapacity(),
+            'fixed_price_minor' => $price->fixed_price_minor,
+            'currency' => $price->currency->value,
+        ]]);
     }
 
     public function drivers(Request $request): JsonResponse
@@ -304,6 +359,14 @@ final class DirectoryController extends Controller
         $model = $this->model($type, $id);
         if ($model instanceof Car) {
             $changes = $this->validateCar($request, $model);
+            if (isset($changes['type'])) {
+                $type = CarType::from($changes['type']);
+                $changes = [
+                    ...$changes,
+                    'passenger_capacity' => $type->passengerCapacity(),
+                    ...$this->typePriceSnapshot($type),
+                ];
+            }
             $old = $model->only(array_keys($changes));
             $model->update($changes);
             $audit->record($request->user(), 'cars.updated', $model, $old, $model->only(array_keys($changes)), $request->ip());
@@ -355,19 +418,31 @@ final class DirectoryController extends Controller
             'plate_number' => [$presence, 'string', 'max:32', Rule::unique('cars', 'plate_number')->ignore($car)],
             'color' => ['nullable', 'string', 'max:50'],
             'category' => [$presence, Rule::enum(CarCategory::class)],
-            'passenger_capacity' => [$presence, 'integer', 'min:1', 'max:50'],
+            'type' => [$presence, Rule::enum(CarType::class)],
             'luggage_capacity' => [$presence, 'integer', 'min:0', 'max:50'],
             'transmission' => ['nullable', 'string', 'max:20'],
             'air_conditioning' => [$presence, 'boolean'],
             'wifi' => [$presence, 'boolean'],
             'child_seat_available' => [$presence, 'boolean'],
-            'base_price_minor' => [$presence, 'integer', 'min:0'],
-            'price_per_km_minor' => [$presence, 'integer', 'min:0'],
-            'price_per_hour_minor' => [$presence, 'integer', 'min:0'],
-            'currency' => [$presence, Rule::enum(CurrencyCode::class)],
             'active' => [$presence, 'boolean'],
             'available_for_booking' => [$presence, 'boolean'],
         ]);
+    }
+
+    /** @return array{base_price_minor: int, price_per_km_minor: int, price_per_hour_minor: int, currency: string} */
+    private function typePriceSnapshot(CarType $type): array
+    {
+        $price = CarTypePrice::query()->firstOrCreate(
+            ['type' => $type->value],
+            ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+        );
+
+        return [
+            'base_price_minor' => $price->fixed_price_minor,
+            'price_per_km_minor' => 0,
+            'price_per_hour_minor' => 0,
+            'currency' => $price->currency->value,
+        ];
     }
 
     private function perPage(Request $request): int

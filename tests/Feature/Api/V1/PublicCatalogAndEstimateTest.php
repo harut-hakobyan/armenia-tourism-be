@@ -86,10 +86,12 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
             ->assertJsonMissingPath('data.upcoming_departures');
 
-        $this->getJson('/api/v1/cars?passengers=7&luggage=5&sort=capacity_desc')
+        $this->getJson('/api/v1/cars?type=minibus&passengers=7&luggage=5&sort=capacity_desc')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.name', 'Mercedes-Benz Vito')
+            ->assertJsonPath('data.0.name', 'Mercedes-Benz Sprinter')
+            ->assertJsonPath('data.0.type', 'minibus')
+            ->assertJsonPath('data.0.passenger_capacity', 10)
             ->assertJsonPath('data.0.rates.currency', 'EUR')
             ->assertJsonMissingPath('data.0.plate_number');
 
@@ -128,7 +130,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.extra_waiting_minutes', 30);
 
         $this->assertGreaterThan(0, $transfer->json('data.estimated_distance_meters'));
-        $this->assertGreaterThan(7000, $transfer->json('data.price.total_minor'));
+        $this->assertSame(7000, $transfer->json('data.price.total_minor'));
 
         $this->postJson('/api/v1/private-driver/estimate', [
             'car_id' => $car->id,
@@ -137,20 +139,24 @@ final class PublicCatalogAndEstimateTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.service_type', 'private_driver')
             ->assertJsonPath('data.package_code', '8_hours')
-            ->assertJsonPath('data.price.total_minor', 19800);
+            ->assertJsonPath('data.price.total_minor', 7000);
 
         $custom = $this->postJson('/api/v1/custom-trips/estimate', [
             'car_id' => $car->id,
-            'passengers' => 3,
+            'passengers' => 80,
             'route_points' => $this->routePoints(),
         ])->assertOk()
             ->assertJsonPath('data.service_type', 'custom_trip')
-            ->assertJsonPath('data.route_points.1.label', 'Garni');
+            ->assertJsonPath('data.route_points.1.label', 'Garni')
+            ->assertJsonPath('data.vehicle_allocation.type', 'sedan')
+            ->assertJsonPath('data.vehicle_allocation.count', 20)
+            ->assertJsonPath('data.vehicle_allocation.capacity_per_vehicle', 4);
 
         $this->assertGreaterThan(
             $custom->json('data.estimated_driving_minutes'),
             $custom->json('data.estimated_duration_minutes'),
         );
+        $this->assertSame(140000, $custom->json('data.price.total_minor'));
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
     }
 
@@ -171,6 +177,20 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
             ->assertJsonPath('data.passengers', 2)
             ->assertJsonPath('data.price.total_minor', 5000);
+    }
+
+    public function test_premium_custom_trip_rejects_multiple_vehicle_allocation(): void
+    {
+        $this->seed();
+        $premiumCar = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+
+        $this->postJson('/api/v1/custom-trips/estimate', [
+            'car_id' => $premiumCar->id,
+            'passengers' => 5,
+            'premium_class' => true,
+            'route_points' => $this->routePoints(),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('estimate');
     }
 
     public function test_estimate_matches_booking_and_invalid_capacity_is_a_safe_validation_error(): void

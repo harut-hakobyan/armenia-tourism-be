@@ -29,7 +29,7 @@ final class StoreBookingRequest extends FormRequest
             'car_id' => ['nullable', 'integer', 'exists:cars,id'],
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'pickup_time' => ['required', 'date_format:H:i'],
-            'passengers' => ['required', 'integer', 'min:1', 'max:20'],
+            'passengers' => ['required', 'integer', 'min:1', 'max:255'],
             'pickup_address' => ['required', 'string', 'max:255'],
             'pickup_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'pickup_longitude' => ['nullable', 'numeric', 'between:-180,180'],
@@ -57,6 +57,7 @@ final class StoreBookingRequest extends FormRequest
             'service_options.child_seat' => ['sometimes', 'boolean'],
             'service_options.extra_waiting_minutes' => ['sometimes', 'integer', 'min:0', 'max:360'],
             'service_options.return_to_yerevan' => ['sometimes', 'boolean'],
+            'service_options.vehicle_class' => ['nullable', Rule::in(['premium'])],
             'service_options.desired_destinations' => ['sometimes', 'array', 'max:20'],
             'service_options.desired_destinations.*' => ['string', 'max:255'],
         ];

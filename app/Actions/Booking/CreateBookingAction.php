@@ -12,6 +12,7 @@ use App\Data\RoutePoint;
 use App\Data\RouteResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\BookingStatus;
+use App\Enums\CarCategory;
 use App\Enums\PaymentStatus;
 use App\Enums\ServiceType;
 use App\Enums\TourFormat;
@@ -90,6 +91,14 @@ final class CreateBookingAction
             if (! $car) {
                 throw new BookingUnavailableException('The selected vehicle is not available.');
             }
+            if (($data->serviceOptions['vehicle_class'] ?? null) === 'premium'
+                && $car->category !== CarCategory::Premium) {
+                throw new BookingUnavailableException('A Premium-class trip requires a Premium vehicle.');
+            }
+            if (($data->serviceOptions['vehicle_class'] ?? null) === 'premium'
+                && $data->passengers > $car->passenger_capacity) {
+                throw new BookingUnavailableException('Passenger count exceeds the selected Premium vehicle capacity.');
+            }
             $startsAt = $tour?->format === TourFormat::Group && $tour->start_time
                 ? $data->startsAt->setTimeFromTimeString((string) $tour->start_time)
                 : $data->startsAt;
@@ -101,7 +110,9 @@ final class CreateBookingAction
                 ? PromoCode::query()->where('code', mb_strtoupper(trim($data->promoCode)))->lockForUpdate()->first()
                 : null;
 
-            if ($tour?->format !== TourFormat::Group && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
+            if ($data->serviceType !== ServiceType::CustomTrip
+                && $tour?->format !== TourFormat::Group
+                && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
                 throw new BookingUnavailableException('The selected car is no longer available for this time.');
             }
 
@@ -242,6 +253,7 @@ final class CreateBookingAction
                 $data->passengers,
                 $data->promoCode,
                 $data->normalizedEmail(),
+                ($data->serviceOptions['vehicle_class'] ?? null) !== 'premium',
             ),
         };
     }

@@ -8,6 +8,7 @@ use App\Contracts\RouteCalculationService;
 use App\Data\PriceBreakdown;
 use App\Data\RoutePoint;
 use App\Data\RouteResult;
+use App\Enums\CarCategory;
 use App\Enums\ServiceType;
 use App\Models\Car;
 use App\Models\Tour;
@@ -35,7 +36,7 @@ final class ServiceEstimateService
             'service_type' => ServiceType::Tour->value,
             'tour' => ['id' => $tour->id, 'slug' => $tour->slug],
             'tour_format' => $tour->format->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'booking_date' => $date->toDateString(),
             'starts_at' => $tour->start_time
                 ? $date->setTimeFromTimeString((string) $tour->start_time)->toIso8601String()
@@ -97,7 +98,7 @@ final class ServiceEstimateService
 
         return [
             'service_type' => ServiceType::PrivateDriver->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'passengers' => $passengers,
             'duration_minutes' => $durationMinutes,
             'package_code' => match ($durationMinutes) {
@@ -120,7 +121,12 @@ final class ServiceEstimateService
         int $passengers,
         ?string $promoCode = null,
         ?string $customerEmail = null,
+        bool $premiumClass = false,
     ): array {
+        if ($premiumClass && $car->category !== CarCategory::Premium) {
+            throw new \InvalidArgumentException('A Premium-class trip requires a Premium vehicle.');
+        }
+
         $route = $this->routing->calculateRoute($points);
         $price = $this->routing->calculateEstimatedPrice(
             $route,
@@ -128,6 +134,7 @@ final class ServiceEstimateService
             $passengers,
             $promoCode,
             $customerEmail,
+            ! $premiumClass,
         );
 
         return $this->routeEstimate(
@@ -137,6 +144,13 @@ final class ServiceEstimateService
             $route,
             $price,
             $route->estimatedTourDurationMinutes,
+            [
+                'vehicle_allocation' => [
+                    'type' => $car->type->value,
+                    'count' => $this->pricing->customTripVehicleCount($car, $passengers),
+                    'capacity_per_vehicle' => $car->passenger_capacity,
+                ],
+            ],
         );
     }
 
@@ -154,7 +168,7 @@ final class ServiceEstimateService
     ): array {
         return [
             'service_type' => $type->value,
-            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}"],
+            'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'passengers' => $passengers,
             'estimated_distance_meters' => $route->distanceMeters,
             'estimated_driving_minutes' => $route->drivingDurationMinutes,

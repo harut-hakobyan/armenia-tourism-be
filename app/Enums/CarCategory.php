@@ -12,4 +12,5 @@ enum CarCategory: string
     case Suv = 'suv';
     case Minivan = 'minivan';
     case Premium = 'premium';
+    case Bus = 'bus';
 }

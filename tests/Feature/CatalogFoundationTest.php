@@ -27,7 +27,7 @@ final class CatalogFoundationTest extends TestCase
         $this->assertDatabaseCount('destination_translations', 45);
         $this->assertDatabaseCount('tour_categories', 10);
         $this->assertDatabaseCount('tour_category_translations', 30);
-        $this->assertDatabaseCount('cars', 6);
+        $this->assertDatabaseCount('cars', 8);
         $this->assertDatabaseCount('drivers', 2);
         $this->assertDatabaseCount('driver_cars', 2);
         $this->assertDatabaseCount('tours', 10);

@@ -28,10 +28,18 @@ final class AdminDriverOperationsTest extends TestCase
     public function test_manager_can_create_edit_and_soft_delete_cars(): void
     {
         $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $this->actingAs($manager)->getJson('/api/v1/admin/directory/car-type-prices')
+            ->assertOk()
+            ->assertJsonPath('data.3.type', 'bus')
+            ->assertJsonPath('data.3.passenger_capacity', 20);
+        $this->actingAs($manager)->patchJson('/api/v1/admin/directory/car-type-prices/minibus', [
+            'fixed_price_minor' => 22200,
+            'currency' => 'EUR',
+        ])->assertOk()->assertJsonPath('data.fixed_price_minor', 22200);
         $payload = [
             'brand' => 'Volkswagen', 'model' => 'Crafter', 'year' => 2025,
             'plate_number' => 'AMT-777', 'color' => 'Silver', 'category' => 'minivan',
-            'passenger_capacity' => 12, 'luggage_capacity' => 10, 'transmission' => 'automatic',
+            'type' => 'minibus', 'luggage_capacity' => 10, 'transmission' => 'automatic',
             'air_conditioning' => true, 'wifi' => true, 'child_seat_available' => true,
             'base_price_minor' => 15000, 'price_per_km_minor' => 120,
             'price_per_hour_minor' => 2500, 'currency' => 'EUR',
@@ -40,13 +48,18 @@ final class AdminDriverOperationsTest extends TestCase
 
         $created = $this->actingAs($manager)->postJson('/api/v1/admin/directory/cars', $payload)
             ->assertCreated()
-            ->assertJsonPath('data.plate_number', 'AMT-777');
+            ->assertJsonPath('data.plate_number', 'AMT-777')
+            ->assertJsonPath('data.type', 'minibus')
+            ->assertJsonPath('data.passenger_capacity', 10)
+            ->assertJsonPath('data.base_price_minor', 22200)
+            ->assertJsonPath('data.price_per_km_minor', 0)
+            ->assertJsonPath('data.price_per_hour_minor', 0);
         $carId = (int) $created->json('data.id');
 
         $this->actingAs($manager)->patchJson("/api/v1/admin/directory/cars/{$carId}", [
-            'color' => 'Black', 'passenger_capacity' => 14,
+            'color' => 'Black',
         ])->assertOk()->assertJsonPath('data.color', 'Black');
-        $this->assertDatabaseHas('cars', ['id' => $carId, 'passenger_capacity' => 14]);
+        $this->assertDatabaseHas('cars', ['id' => $carId, 'type' => 'minibus', 'passenger_capacity' => 10]);
 
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/cars/{$carId}")
             ->assertNoContent();
@@ -142,7 +155,7 @@ final class AdminDriverOperationsTest extends TestCase
         $this->actingAs($manager)->postJson("/api/v1/admin/bookings/{$booking->id}/confirm")->assertOk();
         $this->actingAs($manager)->getJson("/api/v1/admin/bookings/{$booking->id}/availability")
             ->assertOk()
-            ->assertJsonCount(6, 'data.cars')
+            ->assertJsonCount(8, 'data.cars')
             ->assertJsonCount(2, 'data.drivers');
     }
 
