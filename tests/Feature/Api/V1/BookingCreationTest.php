@@ -149,6 +149,7 @@ final class BookingCreationTest extends TestCase
         $this->postJson('/api/v1/bookings', $privateDriver)->assertCreated();
 
         $customTrip = $this->basePayload('custom_trip', $cars[2]->id, $baseDate->addDays(2)->toDateString());
+        $customTrip['passengers'] = 80;
         $customTrip['route_points'] = $this->routePoints();
         $customTrip['service_options'] = ['return_to_yerevan' => true];
         $this->postJson('/api/v1/bookings', $customTrip)->assertCreated();

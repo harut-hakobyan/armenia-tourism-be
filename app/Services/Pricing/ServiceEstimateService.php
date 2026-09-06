@@ -137,6 +137,13 @@ final class ServiceEstimateService
             $route,
             $price,
             $route->estimatedTourDurationMinutes,
+            [
+                'vehicle_allocation' => [
+                    'category' => $car->category->value,
+                    'count' => $this->pricing->customTripVehicleCount($car, $passengers),
+                    'capacity_per_vehicle' => $car->passenger_capacity,
+                ],
+            ],
         );
     }
 

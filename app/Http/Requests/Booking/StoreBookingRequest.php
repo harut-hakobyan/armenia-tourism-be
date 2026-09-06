@@ -29,7 +29,7 @@ final class StoreBookingRequest extends FormRequest
             'car_id' => ['nullable', 'integer', 'exists:cars,id'],
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'pickup_time' => ['required', 'date_format:H:i'],
-            'passengers' => ['required', 'integer', 'min:1', 'max:20'],
+            'passengers' => ['required', 'integer', 'min:1', 'max:255'],
             'pickup_address' => ['required', 'string', 'max:255'],
             'pickup_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'pickup_longitude' => ['nullable', 'numeric', 'between:-180,180'],

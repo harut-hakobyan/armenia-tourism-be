@@ -101,7 +101,9 @@ final class CreateBookingAction
                 ? PromoCode::query()->where('code', mb_strtoupper(trim($data->promoCode)))->lockForUpdate()->first()
                 : null;
 
-            if ($tour?->format !== TourFormat::Group && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
+            if ($data->serviceType !== ServiceType::CustomTrip
+                && $tour?->format !== TourFormat::Group
+                && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
                 throw new BookingUnavailableException('The selected car is no longer available for this time.');
             }
 

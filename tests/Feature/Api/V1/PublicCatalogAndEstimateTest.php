@@ -141,17 +141,20 @@ final class PublicCatalogAndEstimateTest extends TestCase
 
         $custom = $this->postJson('/api/v1/custom-trips/estimate', [
             'car_id' => $car->id,
-            'passengers' => 3,
+            'passengers' => 80,
             'route_points' => $this->routePoints(),
         ])->assertOk()
             ->assertJsonPath('data.service_type', 'custom_trip')
-            ->assertJsonPath('data.route_points.1.label', 'Garni');
+            ->assertJsonPath('data.route_points.1.label', 'Garni')
+            ->assertJsonPath('data.vehicle_allocation.category', 'comfort')
+            ->assertJsonPath('data.vehicle_allocation.count', 20)
+            ->assertJsonPath('data.vehicle_allocation.capacity_per_vehicle', 4);
 
         $this->assertGreaterThan(
             $custom->json('data.estimated_driving_minutes'),
             $custom->json('data.estimated_duration_minutes'),
         );
-        $this->assertSame(7000, $custom->json('data.price.total_minor'));
+        $this->assertSame(140000, $custom->json('data.price.total_minor'));
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
     }
 

@@ -70,17 +70,29 @@ final class PricingService
         ?string $promoCode = null,
         ?string $customerEmail = null,
     ): PriceBreakdown {
-        $this->validateCar($car, $passengers);
+        $this->validateCarForMultipleVehicles($car, $passengers);
         $this->validateMeasurements($distanceMeters, $durationMinutes);
         [$fixedPriceMinor, $currency] = $this->categoryPrice($car);
+        $vehicleCount = $this->customTripVehicleCount($car, $passengers);
 
         return $this->buildBreakdown(
             $fixedPriceMinor,
-            [],
+            $vehicleCount > 1
+                ? ['additional_vehicles' => ($vehicleCount - 1) * $fixedPriceMinor]
+                : [],
             $currency,
             $promoCode,
             $customerEmail,
         );
+    }
+
+    public function customTripVehicleCount(Car $car, int $passengers): int
+    {
+        if ($passengers < 1) {
+            throw new InvalidArgumentException('At least one passenger is required.');
+        }
+
+        return intdiv($passengers + $car->passenger_capacity - 1, $car->passenger_capacity);
     }
 
     public function calculateTransfer(
@@ -170,6 +182,17 @@ final class PricingService
 
         if ($passengers < 1 || $passengers > $car->passenger_capacity) {
             throw new InvalidArgumentException('Passenger count exceeds the selected car capacity.');
+        }
+    }
+
+    private function validateCarForMultipleVehicles(Car $car, int $passengers): void
+    {
+        if (! $car->active || ! $car->available_for_booking) {
+            throw new DomainException('The selected vehicle category is not available for booking.');
+        }
+
+        if ($car->passenger_capacity < 1 || $passengers < 1) {
+            throw new InvalidArgumentException('At least one passenger is required.');
         }
     }
 
