@@ -13,7 +13,6 @@ final class CustomTripBookingDetail extends Model
     protected $fillable = [
         'booking_id', 'return_to_yerevan', 'estimated_distance_meters',
         'estimated_driving_minutes', 'estimated_tour_minutes', 'route_provider', 'route_snapshot',
-        'vehicle_category', 'vehicle_count', 'vehicle_capacity',
     ];
 
     protected function casts(): array
@@ -23,8 +22,6 @@ final class CustomTripBookingDetail extends Model
             'estimated_distance_meters' => 'integer',
             'estimated_driving_minutes' => 'integer',
             'estimated_tour_minutes' => 'integer',
-            'vehicle_count' => 'integer',
-            'vehicle_capacity' => 'integer',
             'route_snapshot' => 'array',
         ];
     }

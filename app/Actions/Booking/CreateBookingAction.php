@@ -159,7 +159,7 @@ final class CreateBookingAction
                 'price_breakdown' => $price->toArray(),
             ]);
 
-            $this->storeServiceDetails($booking, $data, $tour, $route, $car);
+            $this->storeServiceDetails($booking, $data, $tour, $route);
             $booking->statusHistory()->create([
                 'from_status' => null,
                 'to_status' => BookingStatus::Pending,
@@ -253,7 +253,6 @@ final class CreateBookingAction
         CreateBookingData $data,
         ?Tour $tour,
         ?RouteResult $route,
-        Car $car,
     ): void {
         match ($data->serviceType) {
             ServiceType::Tour => $booking->tourDetail()->create([
@@ -289,11 +288,11 @@ final class CreateBookingAction
                 'package_code' => $this->packageCode($data->durationMinutes),
                 'desired_destinations' => $data->serviceOptions['desired_destinations'] ?? null,
             ]),
-            ServiceType::CustomTrip => $this->storeCustomTripDetails($booking, $data, $route, $car),
+            ServiceType::CustomTrip => $this->storeCustomTripDetails($booking, $data, $route),
         };
     }
 
-    private function storeCustomTripDetails(Booking $booking, CreateBookingData $data, RouteResult $route, Car $car): CustomTripBookingDetail
+    private function storeCustomTripDetails(Booking $booking, CreateBookingData $data, RouteResult $route): CustomTripBookingDetail
     {
         $detail = $booking->customTripDetail()->create([
             'return_to_yerevan' => (bool) ($data->serviceOptions['return_to_yerevan'] ?? false),
@@ -302,9 +301,6 @@ final class CreateBookingAction
             'estimated_tour_minutes' => $route->estimatedTourDurationMinutes,
             'route_provider' => $route->provider,
             'route_snapshot' => $this->routeSnapshot($route),
-            'vehicle_category' => $car->category->value,
-            'vehicle_count' => $this->pricing->customTripVehicleCount($car, $data->passengers),
-            'vehicle_capacity' => $car->passenger_capacity,
         ]);
 
         foreach ($data->routePoints as $index => $point) {

@@ -158,11 +158,6 @@ final class BookingCreationTest extends TestCase
         $this->assertDatabaseCount('private_driver_booking_details', 1);
         $this->assertDatabaseHas('private_driver_booking_details', ['package_code' => '8_hours']);
         $this->assertDatabaseCount('custom_trip_booking_details', 1);
-        $this->assertDatabaseHas('custom_trip_booking_details', [
-            'vehicle_category' => 'business',
-            'vehicle_count' => 20,
-            'vehicle_capacity' => 4,
-        ]);
         $this->assertDatabaseCount('custom_trip_stops', 3);
         $this->assertDatabaseCount('bookings', 3);
     }
