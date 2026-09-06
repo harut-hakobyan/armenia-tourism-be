@@ -29,7 +29,7 @@ final class PromotionService
             throw new PromotionException('The promo code is invalid or inactive.');
         }
 
-        if ($promotion->currency !== $currency) {
+        if ($promotion->currency !== null && $promotion->currency !== $currency) {
             throw new PromotionException('The promo code is not valid for this currency.');
         }
 

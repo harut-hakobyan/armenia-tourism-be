@@ -128,7 +128,9 @@ final class CmsController extends Controller
             'code' => [$sometimes, 'string', 'max:50', Rule::unique('promo_codes')->ignore($promo)],
             'type' => [$sometimes, Rule::enum(PromoCodeType::class)],
             'value' => [$sometimes, 'integer', 'min:1'],
-            'currency' => [$sometimes, Rule::enum(CurrencyCode::class)],
+            'currency' => $partial
+                ? ['sometimes', 'nullable', Rule::enum(CurrencyCode::class)]
+                : [Rule::requiredIf($request->input('type') === PromoCodeType::Fixed->value), 'nullable', Rule::enum(CurrencyCode::class)],
             'min_order_minor' => ['sometimes', 'integer', 'min:0'],
             'max_discount_minor' => ['nullable', 'integer', 'min:0'],
             'valid_from' => ['nullable', 'date'],
