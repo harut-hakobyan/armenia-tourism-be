@@ -25,6 +25,7 @@ final class CustomTripEstimateRequest extends FormRequest
             'passengers' => ['required', 'integer', 'min:1', 'max:255'],
             'promo_code' => ['nullable', 'string', 'max:50'],
             'customer_email' => ['nullable', 'email:rfc', 'max:255'],
+            'premium_class' => ['sometimes', 'boolean'],
             ...$this->routePointRules(),
         ];
     }

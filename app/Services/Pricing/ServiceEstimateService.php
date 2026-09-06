@@ -8,6 +8,7 @@ use App\Contracts\RouteCalculationService;
 use App\Data\PriceBreakdown;
 use App\Data\RoutePoint;
 use App\Data\RouteResult;
+use App\Enums\CarCategory;
 use App\Enums\ServiceType;
 use App\Models\Car;
 use App\Models\Tour;
@@ -120,7 +121,12 @@ final class ServiceEstimateService
         int $passengers,
         ?string $promoCode = null,
         ?string $customerEmail = null,
+        bool $premiumClass = false,
     ): array {
+        if ($premiumClass && $car->category !== CarCategory::Premium) {
+            throw new \InvalidArgumentException('A Premium-class trip requires a Premium vehicle.');
+        }
+
         $route = $this->routing->calculateRoute($points);
         $price = $this->routing->calculateEstimatedPrice(
             $route,
@@ -128,6 +134,7 @@ final class ServiceEstimateService
             $passengers,
             $promoCode,
             $customerEmail,
+            ! $premiumClass,
         );
 
         return $this->routeEstimate(

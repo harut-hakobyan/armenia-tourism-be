@@ -57,6 +57,7 @@ final class StoreBookingRequest extends FormRequest
             'service_options.child_seat' => ['sometimes', 'boolean'],
             'service_options.extra_waiting_minutes' => ['sometimes', 'integer', 'min:0', 'max:360'],
             'service_options.return_to_yerevan' => ['sometimes', 'boolean'],
+            'service_options.vehicle_class' => ['nullable', Rule::in(['premium'])],
             'service_options.desired_destinations' => ['sometimes', 'array', 'max:20'],
             'service_options.desired_destinations.*' => ['string', 'max:255'],
         ];

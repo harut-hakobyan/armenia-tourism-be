@@ -177,6 +177,20 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.price.total_minor', 5000);
     }
 
+    public function test_premium_custom_trip_rejects_multiple_vehicle_allocation(): void
+    {
+        $this->seed();
+        $premiumCar = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+
+        $this->postJson('/api/v1/custom-trips/estimate', [
+            'car_id' => $premiumCar->id,
+            'passengers' => 4,
+            'premium_class' => true,
+            'route_points' => $this->routePoints(),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('estimate');
+    }
+
     public function test_estimate_matches_booking_and_invalid_capacity_is_a_safe_validation_error(): void
     {
         $this->seed();

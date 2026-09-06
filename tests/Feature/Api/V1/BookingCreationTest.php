@@ -162,6 +162,25 @@ final class BookingCreationTest extends TestCase
         $this->assertDatabaseCount('bookings', 3);
     }
 
+    public function test_premium_custom_trip_booking_cannot_allocate_multiple_vehicles(): void
+    {
+        $this->seed();
+        $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+        $payload = $this->basePayload('custom_trip', $car->id, now()->addDays(45)->toDateString());
+        $payload['passengers'] = 4;
+        $payload['route_points'] = $this->routePoints();
+        $payload['service_options'] = [
+            'return_to_yerevan' => true,
+            'vehicle_class' => 'premium',
+        ];
+
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Passenger count exceeds the selected Premium vehicle capacity.');
+
+        $this->assertDatabaseCount('bookings', 0);
+    }
+
     public function test_booking_status_transitions_are_validated_and_recorded(): void
     {
         $this->seed();

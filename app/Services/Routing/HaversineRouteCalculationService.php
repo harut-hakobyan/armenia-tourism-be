@@ -60,6 +60,7 @@ final class HaversineRouteCalculationService implements RouteCalculationService
         int $passengers = 1,
         ?string $promoCode = null,
         ?string $customerEmail = null,
+        bool $allowMultipleVehicles = true,
     ): PriceBreakdown {
         return $this->pricing->calculateCustomTrip(
             car: $car,
@@ -68,6 +69,7 @@ final class HaversineRouteCalculationService implements RouteCalculationService
             passengers: $passengers,
             promoCode: $promoCode,
             customerEmail: $customerEmail,
+            allowMultipleVehicles: $allowMultipleVehicles,
         );
     }
 
