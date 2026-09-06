@@ -89,7 +89,7 @@ final class CmsAndAuditTest extends TestCase
             ->assertOk()->assertJsonCount(3, 'data');
     }
 
-    public function test_promo_code_creation_requires_currency_and_only_admin_can_remove_it(): void
+    public function test_fixed_promo_code_creation_requires_currency_and_only_admin_can_remove_it(): void
     {
         $this->seed();
         $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
@@ -124,6 +124,28 @@ final class CmsAndAuditTest extends TestCase
             'user_id' => $admin->id,
             'action' => 'promo_code.deleted',
             'subject_id' => $promoId,
+        ]);
+    }
+
+    public function test_percentage_promo_code_is_created_without_currency(): void
+    {
+        $this->seed();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+
+        $this->actingAs($manager)->postJson('/api/v1/admin/promo-codes', [
+            'code' => 'SAVE15',
+            'type' => 'percentage',
+            'value' => 1500,
+            'active' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.type', 'percentage')
+            ->assertJsonPath('data.value', 1500)
+            ->assertJsonPath('data.currency', null);
+
+        $this->assertDatabaseHas('promo_codes', [
+            'code' => 'SAVE15',
+            'type' => 'percentage',
+            'currency' => null,
         ]);
     }
 

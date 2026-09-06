@@ -82,6 +82,22 @@ final class PricingAndRoutingTest extends TestCase
         }
     }
 
+    public function test_currency_independent_percentage_promotion_accepts_any_currency(): void
+    {
+        PromoCode::query()->create([
+            'code' => 'GLOBAL10',
+            'type' => 'percentage',
+            'value' => 1000,
+            'currency' => null,
+            'active' => true,
+        ]);
+
+        $promotions = $this->app->make(PromotionService::class);
+
+        $this->assertSame(1000, $promotions->calculateDiscount('GLOBAL10', 10000, CurrencyCode::Eur)->discountMinor);
+        $this->assertSame(1000, $promotions->calculateDiscount('GLOBAL10', 10000, CurrencyCode::Amd)->discountMinor);
+    }
+
     public function test_per_person_pricing_is_supported_only_when_configured_on_tour(): void
     {
         $this->seed();
