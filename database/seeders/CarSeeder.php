@@ -27,21 +27,26 @@ final class CarSeeder extends Seeder
         ];
 
         $typePrices = [
-            CarType::Sedan->value => 7000,
-            CarType::Minivan->value => 14000,
-            CarType::Minibus->value => 18000,
-            CarType::Bus->value => 25000,
+            CarType::Coupe->value => [7000, 70],
+            CarType::Sedan->value => [7000, 70],
+            CarType::Minivan->value => [14000, 140],
+            CarType::Minibus->value => [18000, 180],
+            CarType::Bus->value => [25000, 250],
         ];
 
-        foreach ($typePrices as $type => $price) {
+        foreach ($typePrices as $type => [$fixedPrice, $pricePerKilometre]) {
             CarTypePrice::query()->updateOrCreate(
                 ['type' => $type],
-                ['fixed_price_minor' => $price, 'currency' => CurrencyCode::Eur],
+                [
+                    'fixed_price_minor' => $fixedPrice,
+                    'price_per_km_minor' => $pricePerKilometre,
+                    'currency' => CurrencyCode::Eur,
+                ],
             );
         }
 
         foreach ($cars as [$brand, $model, $year, $plate, $color, $category, $type, $luggage]) {
-            $base = $typePrices[$type->value];
+            [$base, $pricePerKilometre] = $typePrices[$type->value];
             Car::query()->updateOrCreate(
                 ['plate_number' => $plate],
                 [
@@ -58,7 +63,7 @@ final class CarSeeder extends Seeder
                     'wifi' => $category !== CarCategory::Economy,
                     'child_seat_available' => true,
                     'base_price_minor' => $base,
-                    'price_per_km_minor' => 0,
+                    'price_per_km_minor' => $pricePerKilometre,
                     'price_per_hour_minor' => 0,
                     'currency' => CurrencyCode::Eur,
                     'active' => true,

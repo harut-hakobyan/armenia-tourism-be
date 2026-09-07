@@ -30,12 +30,15 @@ final class AdminDriverOperationsTest extends TestCase
         $manager = User::factory()->create(['role' => UserRole::Manager]);
         $this->actingAs($manager)->getJson('/api/v1/admin/directory/car-type-prices')
             ->assertOk()
-            ->assertJsonPath('data.3.type', 'bus')
-            ->assertJsonPath('data.3.passenger_capacity', 20);
+            ->assertJsonCount(5, 'data')
+            ->assertJsonFragment(['type' => 'coupe', 'passenger_capacity' => 3]);
         $this->actingAs($manager)->patchJson('/api/v1/admin/directory/car-type-prices/minibus', [
             'fixed_price_minor' => 22200,
+            'price_per_km_minor' => 175,
             'currency' => 'EUR',
-        ])->assertOk()->assertJsonPath('data.fixed_price_minor', 22200);
+        ])->assertOk()
+            ->assertJsonPath('data.fixed_price_minor', 22200)
+            ->assertJsonPath('data.price_per_km_minor', 175);
         $payload = [
             'brand' => 'Volkswagen', 'model' => 'Crafter', 'year' => 2025,
             'plate_number' => 'AMT-777', 'color' => 'Silver', 'category' => 'minivan',
@@ -52,7 +55,7 @@ final class AdminDriverOperationsTest extends TestCase
             ->assertJsonPath('data.type', 'minibus')
             ->assertJsonPath('data.passenger_capacity', 10)
             ->assertJsonPath('data.base_price_minor', 22200)
-            ->assertJsonPath('data.price_per_km_minor', 0)
+            ->assertJsonPath('data.price_per_km_minor', 175)
             ->assertJsonPath('data.price_per_hour_minor', 0);
         $carId = (int) $created->json('data.id');
 

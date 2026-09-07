@@ -135,7 +135,8 @@ final class TelegramBotTest extends TestCase
             'tour_id' => $tour->id, 'car_id' => $car->id,
             'booking_date' => now()->addDays(30)->toDateString(), 'pickup_time' => '09:00',
             'passengers' => 1, 'pickup_address' => 'Republic Square, Yerevan',
-            'customer_name' => 'Telegram Guest', 'customer_phone' => '+37499123456',
+            'customer_name' => 'Telegram Guest', 'customer_email' => 'telegram@example.com',
+            'customer_phone' => '+37499123456',
             'payment_method' => 'pay_driver',
         ])->assertCreated();
 
