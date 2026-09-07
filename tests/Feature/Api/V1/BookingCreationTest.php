@@ -225,7 +225,24 @@ final class BookingCreationTest extends TestCase
             AdminNewBookingNotification::class,
             fn ($notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === $manager->email,
         );
-        Notification::assertSentOnDemand(CustomerBookingConfirmationNotification::class);
+        Notification::assertSentOnDemand(
+            CustomerBookingConfirmationNotification::class,
+            fn ($notification, array $channels, object $notifiable): bool => str_contains(
+                $notification->toMail($notifiable)->render(),
+                '<svg',
+            ),
+        );
+    }
+
+    public function test_booking_requires_customer_email(): void
+    {
+        $this->seed();
+        $payload = $this->tourPayload();
+        unset($payload['customer_email']);
+
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('customer_email');
     }
 
     /** @return array<string, mixed> */

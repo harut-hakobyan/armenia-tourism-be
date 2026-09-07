@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Booking;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,6 +20,7 @@ final class CustomerBookingConfirmationNotification extends Notification impleme
     public function __construct(
         private readonly Booking $booking,
         private readonly string $publicUrl,
+        private readonly string $checkInPayload,
     ) {}
 
     /** @return list<string> */
@@ -27,17 +31,24 @@ final class CustomerBookingConfirmationNotification extends Notification impleme
 
     public function toMail(object $notifiable): MailMessage
     {
+        $qrCode = new QrCode(
+            data: $this->checkInPayload,
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 280,
+            margin: 12,
+        );
+        $qrSvg = (new SvgWriter)->write($qrCode)->getString();
+
         return (new MailMessage)
             ->subject("Booking received — {$this->booking->booking_number}")
-            ->greeting("Hello {$this->booking->customer_name},")
-            ->line('We received your Armenia travel booking and will confirm it shortly.')
-            ->line("Booking number: {$this->booking->booking_number}")
-            ->line("Passengers: {$this->booking->passengers}")
-            ->line("Pickup: {$this->booking->pickup_address}")
-            ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
-            ->line('Total: '.number_format($this->booking->total_minor / 100, 2).' '.$this->booking->currency->value)
-            ->line('Your secure booking page includes the QR ticket that staff will scan when you arrive.')
-            ->action('View your booking', $this->publicUrl)
-            ->line('Keep this private link safe; it provides access to your booking details.');
+            ->view([
+                'html' => 'emails.customer-booking-confirmation',
+                'text' => 'emails.customer-booking-confirmation-text',
+            ], [
+                'booking' => $this->booking,
+                'publicUrl' => $this->publicUrl,
+                'qrSvg' => $qrSvg,
+                'checkInPayload' => $this->checkInPayload,
+            ]);
     }
 }
