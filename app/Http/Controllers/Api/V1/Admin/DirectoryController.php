@@ -202,13 +202,14 @@ final class DirectoryController extends Controller
         $prices = collect(CarType::cases())->map(function (CarType $type): array {
             $price = CarTypePrice::query()->firstOrCreate(
                 ['type' => $type->value],
-                ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+                ['fixed_price_minor' => 0, 'price_per_km_minor' => 0, 'currency' => CurrencyCode::Eur],
             );
 
             return [
                 'type' => $type->value,
                 'passenger_capacity' => $type->passengerCapacity(),
                 'fixed_price_minor' => $price->fixed_price_minor,
+                'price_per_km_minor' => $price->price_per_km_minor,
                 'currency' => $price->currency->value,
             ];
         });
@@ -222,6 +223,7 @@ final class DirectoryController extends Controller
         abort_unless($typeEnum, 404);
         $validated = $request->validate([
             'fixed_price_minor' => ['required', 'integer', 'min:0'],
+            'price_per_km_minor' => ['required', 'integer', 'min:0'],
             'currency' => ['required', Rule::enum(CurrencyCode::class)],
         ]);
         $price = CarTypePrice::query()->firstOrCreate(['type' => $typeEnum->value]);
@@ -230,7 +232,7 @@ final class DirectoryController extends Controller
         Car::query()->where('type', $typeEnum->value)->update([
             'passenger_capacity' => $typeEnum->passengerCapacity(),
             'base_price_minor' => $price->fixed_price_minor,
-            'price_per_km_minor' => 0,
+            'price_per_km_minor' => $price->price_per_km_minor,
             'price_per_hour_minor' => 0,
             'currency' => $price->currency->value,
         ]);
@@ -240,6 +242,7 @@ final class DirectoryController extends Controller
             'type' => $price->type->value,
             'passenger_capacity' => $typeEnum->passengerCapacity(),
             'fixed_price_minor' => $price->fixed_price_minor,
+            'price_per_km_minor' => $price->price_per_km_minor,
             'currency' => $price->currency->value,
         ]]);
     }
@@ -434,12 +437,12 @@ final class DirectoryController extends Controller
     {
         $price = CarTypePrice::query()->firstOrCreate(
             ['type' => $type->value],
-            ['fixed_price_minor' => 0, 'currency' => CurrencyCode::Eur],
+            ['fixed_price_minor' => 0, 'price_per_km_minor' => 0, 'currency' => CurrencyCode::Eur],
         );
 
         return [
             'base_price_minor' => $price->fixed_price_minor,
-            'price_per_km_minor' => 0,
+            'price_per_km_minor' => $price->price_per_km_minor,
             'price_per_hour_minor' => 0,
             'currency' => $price->currency->value,
         ];

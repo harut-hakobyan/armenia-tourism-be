@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Model;
 
 final class CarTypePrice extends Model
 {
-    protected $fillable = ['type', 'fixed_price_minor', 'currency'];
+    protected $fillable = ['type', 'fixed_price_minor', 'price_per_km_minor', 'currency'];
 
     protected function casts(): array
     {
         return [
             'type' => CarType::class,
             'fixed_price_minor' => 'integer',
+            'price_per_km_minor' => 'integer',
             'currency' => CurrencyCode::class,
         ];
     }

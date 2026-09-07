@@ -79,15 +79,16 @@ final class PricingService
             $this->validateCar($car, $passengers);
         }
         $this->validateMeasurements($distanceMeters, $durationMinutes);
-        [$fixedPriceMinor, $currency] = $this->typePrice($car);
+        [$pricePerKilometreMinor, $currency] = $this->typePricePerKilometre($car);
         $vehicleCount = $allowMultipleVehicles
             ? $this->customTripVehicleCount($car, $passengers)
             : 1;
+        $singleVehiclePriceMinor = (int) round(($distanceMeters * $pricePerKilometreMinor) / 1000);
 
         return $this->buildBreakdown(
-            $fixedPriceMinor,
+            $singleVehiclePriceMinor,
             $vehicleCount > 1
-                ? ['additional_vehicles' => ($vehicleCount - 1) * $fixedPriceMinor]
+                ? ['additional_vehicles' => ($vehicleCount - 1) * $singleVehiclePriceMinor]
                 : [],
             $currency,
             $promoCode,
@@ -209,5 +210,15 @@ final class PricingService
             : ($carOrType instanceof Car
                 ? [$carOrType->base_price_minor, $carOrType->currency]
                 : [0, CurrencyCode::Eur]);
+    }
+
+    /** @return array{int, CurrencyCode} */
+    private function typePricePerKilometre(Car $car): array
+    {
+        $price = CarTypePrice::query()->where('type', $car->type->value)->first();
+
+        return $price
+            ? [$price->price_per_km_minor, $price->currency]
+            : [$car->price_per_km_minor, $car->currency];
     }
 }
