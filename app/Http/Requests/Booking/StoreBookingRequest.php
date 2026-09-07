@@ -37,7 +37,7 @@ final class StoreBookingRequest extends FormRequest
             'dropoff_latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'dropoff_longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'customer_name' => ['required', 'string', 'max:255'],
-            'customer_email' => ['nullable', 'email:rfc', 'max:255'],
+            'customer_email' => ['required', 'email:rfc', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:32'],
             'customer_whatsapp' => ['nullable', 'string', 'max:32'],
             'customer_nationality' => ['nullable', 'string', 'max:100'],

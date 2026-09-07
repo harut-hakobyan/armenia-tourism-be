@@ -13,6 +13,7 @@ use App\Notifications\CustomerBookingConfirmationNotification;
 use App\Notifications\CustomerDriverAssignedNotification;
 use App\Notifications\DriverAssignedNotification;
 use App\Services\Booking\BookingAccessTokenService;
+use App\Services\Booking\BookingCheckInTokenService;
 use App\Services\Telegram\TelegramBookingNotifier;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -21,6 +22,7 @@ final class LaravelBookingNotificationService implements BookingNotificationServ
 {
     public function __construct(
         private readonly BookingAccessTokenService $tokens,
+        private readonly BookingCheckInTokenService $checkInTokens,
         private readonly TelegramBookingNotifier $telegram,
     ) {}
 
@@ -34,7 +36,11 @@ final class LaravelBookingNotificationService implements BookingNotificationServ
 
         if ($booking->customer_email) {
             Notification::route('mail', $booking->customer_email)
-                ->notify(new CustomerBookingConfirmationNotification($booking, $this->publicUrl($booking)));
+                ->notify(new CustomerBookingConfirmationNotification(
+                    $booking,
+                    $this->publicUrl($booking),
+                    $this->checkInTokens->payload($booking),
+                ));
         }
     }
 
