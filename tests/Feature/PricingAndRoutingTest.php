@@ -10,6 +10,7 @@ use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Exceptions\PromotionException;
 use App\Models\Car;
+use App\Models\CarTypePrice;
 use App\Models\PromoCode;
 use App\Models\Tour;
 use App\Services\Pricing\PricingService;
@@ -118,17 +119,40 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame(6000, $price->totalMinor);
     }
 
-    public function test_custom_trip_uses_the_fixed_car_type_price(): void
+    public function test_custom_trip_uses_the_car_type_rate_per_kilometre(): void
     {
         $this->seed();
         $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
 
-        $price = $this->app->make(PricingService::class)
+        $pricing = $this->app->make(PricingService::class);
+        $fiftyKilometres = $pricing
+            ->calculateCustomTrip($car, 50_000, 90);
+        $oneHundredKilometres = $pricing
             ->calculateCustomTrip($car, 100_000, 180);
 
-        $this->assertSame(7000, $price->baseMinor);
-        $this->assertSame([], $price->adjustments);
-        $this->assertSame(7000, $price->totalMinor);
+        $this->assertSame(3500, $fiftyKilometres->baseMinor);
+        $this->assertSame(7000, $oneHundredKilometres->baseMinor);
+        $this->assertSame([], $oneHundredKilometres->adjustments);
+        $this->assertSame(7000, $oneHundredKilometres->totalMinor);
+    }
+
+    public function test_custom_trip_applies_promotion_after_distance_pricing(): void
+    {
+        $this->seed();
+        $car = Car::query()->where('plate_number', 'AMT-201')->firstOrFail();
+
+        $price = $this->app->make(PricingService::class)->calculateCustomTrip(
+            $car,
+            100_000,
+            180,
+            promoCode: 'WELCOME10',
+            customerEmail: 'custom-trip@example.com',
+        );
+
+        $this->assertSame(7000, $price->subtotalMinor);
+        $this->assertSame(700, $price->discountMinor);
+        $this->assertSame(6300, $price->totalMinor);
+        $this->assertSame('WELCOME10', $price->promoCode);
     }
 
     public function test_custom_trip_multiplies_type_price_for_unlimited_vehicle_units(): void
@@ -176,7 +200,9 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame('haversine', $route->provider);
         $this->assertGreaterThan(40_000, $route->distanceMeters);
         $this->assertGreaterThan($route->drivingDurationMinutes, $route->estimatedTourDurationMinutes);
-        $this->assertSame($car->base_price_minor, $price->totalMinor);
+        $rate = CarTypePrice::query()->where('type', $car->type->value)->firstOrFail()->price_per_km_minor;
+        $expected = (int) round(($route->distanceMeters * $rate) / 1000);
+        $this->assertSame($expected, $price->totalMinor);
     }
 
     public function test_promotion_minimum_order_is_enforced(): void

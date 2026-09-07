@@ -156,7 +156,11 @@ final class PublicCatalogAndEstimateTest extends TestCase
             $custom->json('data.estimated_driving_minutes'),
             $custom->json('data.estimated_duration_minutes'),
         );
-        $this->assertSame(140000, $custom->json('data.price.total_minor'));
+        $singleVehiclePrice = (int) round(
+            ($custom->json('data.estimated_distance_meters') * $car->price_per_km_minor) / 1000,
+        );
+        $this->assertSame($singleVehiclePrice, $custom->json('data.price.base_minor'));
+        $this->assertSame($singleVehiclePrice * 20, $custom->json('data.price.total_minor'));
         $this->assertSame(6300, $tourEstimate->json('data.price.total_minor'));
     }
 
