@@ -16,6 +16,7 @@ final class AssignmentAvailabilityController extends Controller
 {
     public function __invoke(Booking $booking, AvailabilityService $availability): JsonResponse
     {
+        abort_unless(config('tourism.booking_assignment_enabled'), 404);
         Gate::authorize('assign', $booking);
         $cars = Car::query()->where('active', true)->where('available_for_booking', true)
             ->where('passenger_capacity', '>=', $booking->passengers)->get()

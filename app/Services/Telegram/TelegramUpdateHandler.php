@@ -107,8 +107,8 @@ final class TelegramUpdateHandler
             $parts = explode(':', $data);
             match ($parts[0] ?? '') {
                 'bc' => $this->bookingAction($user, $chatId, $parts),
-                'ac' => $this->chooseCar($user, $chatId, $parts),
-                'ad' => $this->chooseDriver($user, $chatId, $parts),
+                'ac' => $this->assignmentEnabled() ? $this->chooseCar($user, $chatId, $parts) : throw new \RuntimeException('Booking assignment is temporarily disabled.'),
+                'ad' => $this->assignmentEnabled() ? $this->chooseDriver($user, $chatId, $parts) : throw new \RuntimeException('Booking assignment is temporarily disabled.'),
                 'bd' => $this->driverDetails($user, $chatId, (int) ($parts[1] ?? 0)),
                 'ds' => $this->driverStatus($user, $chatId, (int) ($parts[1] ?? 0), (string) ($parts[2] ?? '')),
                 'menu' => $this->menuAction($user, $chatId, (string) ($parts[1] ?? 'help')),
@@ -128,6 +128,7 @@ final class TelegramUpdateHandler
         $this->operations($user);
         $booking = Booking::query()->findOrFail((int) ($parts[2] ?? 0));
         if (($parts[1] ?? '') === 'assign') {
+            abort_unless($this->assignmentEnabled(), 404, 'Booking assignment is temporarily disabled.');
             $this->availableCars($chatId, $booking);
 
             return;
@@ -232,10 +233,12 @@ final class TelegramUpdateHandler
             BookingStatus::Pending => [
                 [['text' => 'Confirm', 'callback_data' => "bc:confirm:{$booking->id}"], ['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
             ],
-            BookingStatus::Confirmed => [
-                [['text' => 'Assign car & driver', 'callback_data' => "bc:assign:{$booking->id}"]],
-                [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
-            ],
+            BookingStatus::Confirmed => $this->assignmentEnabled()
+                ? [
+                    [['text' => 'Assign car & driver', 'callback_data' => "bc:assign:{$booking->id}"]],
+                    [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
+                ]
+                : [[['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]]],
             BookingStatus::Assigned => [
                 [['text' => 'Cancel', 'callback_data' => "bc:cancel:{$booking->id}"]],
             ],
@@ -381,6 +384,11 @@ final class TelegramUpdateHandler
     private function operations(User $user): void
     {
         abort_unless($user->hasAnyRole(UserRole::Admin, UserRole::Manager), 403);
+    }
+
+    private function assignmentEnabled(): bool
+    {
+        return (bool) config('tourism.booking_assignment_enabled');
     }
 
     private function driver(User $user): Driver
