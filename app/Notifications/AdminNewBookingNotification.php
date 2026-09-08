@@ -36,7 +36,7 @@ final class AdminNewBookingNotification extends Notification implements ShouldQu
             ->line("Passengers: {$this->booking->passengers}")
             ->line("Pickup: {$this->booking->pickup_address}")
             ->line("Starts: {$this->booking->starts_at->format('d M Y H:i')}")
-            ->line('Total: '.number_format($this->booking->total_minor / 100, 2).' '.$this->booking->currency->value)
+            ->line('Total: '.$this->booking->currency->formatMinor($this->booking->total_minor).' '.$this->booking->currency->value)
             ->action('Manage booking', $adminUrl)
             ->line('Open the admin dashboard to confirm and assign the trip.');
     }
