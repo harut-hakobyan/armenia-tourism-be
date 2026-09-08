@@ -25,6 +25,12 @@ final class AdminDriverOperationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['tourism.booking_assignment_enabled' => true]);
+    }
+
     public function test_manager_can_create_edit_and_soft_delete_cars(): void
     {
         $manager = User::factory()->create(['role' => UserRole::Manager]);

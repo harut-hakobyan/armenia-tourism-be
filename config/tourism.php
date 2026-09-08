@@ -9,6 +9,8 @@ return [
         'admin_email' => env('BOOKING_ADMIN_EMAIL', 'admin@armeniatourism.local'),
     ],
 
+    'booking_assignment_enabled' => env('BOOKING_ASSIGNMENT_ENABLED', false),
+
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'bot_username' => env('TELEGRAM_BOT_USERNAME'),

@@ -20,6 +20,12 @@ final class BookingCheckInTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['tourism.booking_assignment_enabled' => true]);
+    }
+
     public function test_customer_receives_qr_and_manager_can_record_partial_and_complete_arrivals_idempotently(): void
     {
         Notification::fake();

@@ -52,6 +52,7 @@ final class BookingOperationsController extends Controller
         Booking $booking,
         AssignBookingAction $action,
     ): AdminBookingResource {
+        abort_unless(config('tourism.booking_assignment_enabled'), 404);
         $validated = $request->validated();
         $assigned = $action->execute(
             $booking,
