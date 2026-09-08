@@ -6,7 +6,7 @@ The backend is intentionally separate from the React frontend in `../armenia-tou
 
 Current development handoff: [docs/PROGRESS.md](docs/PROGRESS.md)
 
-## Current status
+## Current statuss
 
 The ten-phase MVP is implemented:
 
