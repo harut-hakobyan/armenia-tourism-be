@@ -13,7 +13,7 @@ final class TelegramBookingNotifier
 {
     public function bookingCreated(Booking $booking): void
     {
-        if (!config('tourism.telegram.bot_token')) {
+        if (! config('tourism.telegram.bot_token')) {
             return;
         }
         $this->loadBooking($booking);
@@ -27,12 +27,12 @@ final class TelegramBookingNotifier
 
     public function driverAssigned(Booking $booking): void
     {
-        if (!config('tourism.telegram.bot_token')) {
+        if (! config('tourism.telegram.bot_token')) {
             return;
         }
         $this->loadBooking($booking);
         $user = $booking->driver?->user;
-        if (!$user?->telegram_chat_id || !$user->telegram_notifications_enabled) {
+        if (! $user?->telegram_chat_id || ! $user->telegram_notifications_enabled) {
             return;
         }
         SendTelegramMessageJob::dispatch((string) $user->telegram_chat_id, "<b>New assigned trip</b>\n\n".$this->summary($booking), [
