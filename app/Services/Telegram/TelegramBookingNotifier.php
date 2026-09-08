@@ -13,7 +13,9 @@ final class TelegramBookingNotifier
 {
     public function bookingCreated(Booking $booking): void
     {
-        if (! config('tourism.telegram.bot_token')) return;
+        if (! config('tourism.telegram.bot_token')) {
+            return;
+        }
         $this->loadBooking($booking);
         User::query()->whereIn('role', [UserRole::Admin, UserRole::Manager])->where('is_active', true)->whereNotNull('telegram_chat_id')->where('telegram_notifications_enabled', true)->each(function (User $user) use ($booking): void {
             SendTelegramMessageJob::dispatch((string) $user->telegram_chat_id, $this->summary($booking), [
@@ -25,10 +27,14 @@ final class TelegramBookingNotifier
 
     public function driverAssigned(Booking $booking): void
     {
-        if (! config('tourism.telegram.bot_token')) return;
+        if (! config('tourism.telegram.bot_token')) {
+            return;
+        }
         $this->loadBooking($booking);
         $user = $booking->driver?->user;
-        if (! $user?->telegram_chat_id || ! $user->telegram_notifications_enabled) return;
+        if (! $user?->telegram_chat_id || ! $user->telegram_notifications_enabled) {
+            return;
+        }
         SendTelegramMessageJob::dispatch((string) $user->telegram_chat_id, "<b>New assigned trip</b>\n\n".$this->summary($booking), [
             [['text' => '🚗 On the way', 'callback_data' => "ds:{$booking->id}:on_the_way"]],
             [['text' => 'Trip details', 'callback_data' => "bd:{$booking->id}"]],
@@ -51,7 +57,9 @@ final class TelegramBookingNotifier
     private function destinations(Booking $booking): string
     {
         $custom = $booking->privateDriverDetail?->desired_destinations;
-        if (is_array($custom) && $custom !== []) return implode(', ', array_map('strval', $custom));
+        if (is_array($custom) && $custom !== []) {
+            return implode(', ', array_map('strval', $custom));
+        }
         return $booking->tour?->stops->map(fn ($stop) => $stop->destination?->translations->firstWhere('locale', 'en')?->name ?? $stop->destination?->translations->first()?->name)->filter()->unique()->values()->implode(', ') ?: '—';
     }
 }
