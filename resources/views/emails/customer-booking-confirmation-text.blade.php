@@ -7,7 +7,7 @@ Booking number: {{ $booking->booking_number }}
 Passengers: {{ $booking->passengers }}
 Pickup: {{ $booking->pickup_address }}
 Starts: {{ $booking->starts_at->format('d M Y H:i') }}
-Total: {{ number_format($booking->total_minor / 100, 2) }} {{ $booking->currency->value }}
+Total: {{ $booking->currency->formatMinor($booking->total_minor) }} {{ $booking->currency->value }}
 
 Your check-in QR payload: {{ $checkInPayload }}
 View your booking: {{ $publicUrl }}

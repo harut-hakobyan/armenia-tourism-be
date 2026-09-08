@@ -49,7 +49,7 @@ final class TelegramBookingNotifier
     public function summary(Booking $booking): string
     {
         $tour = $booking->tour?->translations->firstWhere('locale', 'en')?->title ?? $booking->tour?->translations->first()?->title ?? ucfirst(str_replace('_', ' ', $booking->service_type->value));
-        $price = number_format($booking->total_minor / 100, 2).' '.($booking->currency?->value ?? '');
+        $price = $booking->currency->formatMinor($booking->total_minor).' '.$booking->currency->value;
 
         return '<b>'.e($booking->booking_number)."</b>\n"
             .'Tour Type: '.e($tour)."\nCustomer Name: ".e($booking->customer_name ?: '—')."\nCustomer Phone: ".e($booking->customer_phone ?: '—')."\nCustomer Email: ".e($booking->customer_email ?: '—')."\nCustomer WhatsApp: ".e($booking->customer_whatsapp ?: '—')."\nTour Price: ".e($price)."\nDate of Tour: ".e($booking->starts_at->format('d M Y H:i'))."\nPickup Location: ".e($booking->pickup_address ?: '—')."\nPassenger Count: ".e((string) $booking->passengers)."\nDestinations: ".e($this->destinations($booking))."\nStatus: <b>".e($booking->booking_status->value).'</b>';

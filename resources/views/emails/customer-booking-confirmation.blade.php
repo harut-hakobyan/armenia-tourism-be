@@ -11,7 +11,7 @@
             <strong>Passengers:</strong> {{ $booking->passengers }}<br>
             <strong>Pickup:</strong> {{ $booking->pickup_address }}<br>
             <strong>Starts:</strong> {{ $booking->starts_at->format('d M Y H:i') }}<br>
-            <strong>Total:</strong> {{ number_format($booking->total_minor / 100, 2) }} {{ $booking->currency->value }}
+            <strong>Total:</strong> {{ $booking->currency->formatMinor($booking->total_minor) }} {{ $booking->currency->value }}
         </p>
         <div style="margin:28px 0;text-align:center">
             <p style="font-weight:bold;color:#173f35">Your check-in QR ticket</p>
