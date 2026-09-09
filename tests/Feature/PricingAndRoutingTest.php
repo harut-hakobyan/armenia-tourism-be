@@ -8,6 +8,7 @@ use App\Contracts\RouteCalculationService;
 use App\Data\RoutePoint;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
+use App\Enums\TourFormat;
 use App\Exceptions\PromotionException;
 use App\Models\Car;
 use App\Models\CarTypePrice;
@@ -38,7 +39,7 @@ final class PricingAndRoutingTest extends TestCase
         $this->assertSame($onePassenger->totalMinor, $fourPassengers->totalMinor);
     }
 
-    public function test_private_tour_vehicle_type_supplement_and_percentage_promotion_are_applied_server_side(): void
+    public function test_private_tour_selected_vehicle_price_and_percentage_promotion_are_applied_server_side(): void
     {
         $this->seed();
         $pricing = $this->app->make(PricingService::class);
@@ -54,8 +55,8 @@ final class PricingAndRoutingTest extends TestCase
             'guest@example.com',
         );
 
-        $this->assertSame(7000, $price->baseMinor);
-        $this->assertSame(7000, $price->adjustments['car_type']);
+        $this->assertSame(14000, $price->baseMinor);
+        $this->assertSame([], $price->adjustments);
         $this->assertSame(14000, $price->subtotalMinor);
         $this->assertSame(1400, $price->discountMinor);
         $this->assertSame(12600, $price->totalMinor);
@@ -109,6 +110,7 @@ final class PricingAndRoutingTest extends TestCase
             'starting_price_minor' => 2000,
             'currency' => 'EUR',
             'pricing_type' => PricingType::PerPerson,
+            'format' => TourFormat::Group,
             'active' => true,
             'max_passengers' => 4,
         ]);

@@ -34,7 +34,7 @@ final class TourController extends Controller
         abort_unless($tour->active, 404);
 
         return new TourResource($tour->load([
-            'translations', 'category.translations', 'media', 'days',
+            'translations', 'category.translations', 'media', 'prices', 'days',
             'stops.destination.translations',
         ]));
     }
@@ -45,7 +45,7 @@ final class TourController extends Controller
         $query = Tour::query()
             ->active()
             ->with([
-                'translations', 'category.translations', 'media',
+                'translations', 'category.translations', 'media', 'prices',
             ])
             ->when($filters['format'] ?? null, fn (Builder $query, string $format) => $query->where('format', $format))
             ->when($filters['category'] ?? null, fn (Builder $query, string $slug) => $query

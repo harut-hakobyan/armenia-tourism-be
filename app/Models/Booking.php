@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\BookingStatus;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Enums\DriverTripStatus;
 use App\Enums\PaymentMethod;
@@ -25,7 +26,7 @@ final class Booking extends Model
 
     protected $fillable = [
         'uuid', 'booking_number', 'secure_token_hash', 'idempotency_key', 'request_fingerprint',
-        'customer_id', 'tour_id', 'group_tour_departure_id', 'car_id', 'driver_id', 'promo_code_id',
+        'customer_id', 'tour_id', 'group_tour_departure_id', 'car_id', 'requested_car_type', 'driver_id', 'promo_code_id',
         'service_type', 'booking_date', 'pickup_time', 'starts_at', 'planned_end_at',
         'check_in_token_hash', 'attendance_status', 'checked_in_passengers', 'last_checked_in_at',
         'pickup_address', 'pickup_latitude', 'pickup_longitude', 'dropoff_address',
@@ -48,6 +49,7 @@ final class Booking extends Model
     {
         return [
             'service_type' => ServiceType::class,
+            'requested_car_type' => CarType::class,
             'booking_date' => 'date',
             'starts_at' => 'immutable_datetime',
             'planned_end_at' => 'immutable_datetime',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Enums\TourFormat;
@@ -22,6 +23,7 @@ final class UpsertTourRequest extends FormRequest
     {
         $required = $this->isMethod('post') ? 'required' : 'sometimes';
         $tourId = $this->route('tour')?->getKey() ?? $this->route('id');
+        $requiresCarTypePrices = $this->input('format') === TourFormat::Private->value;
 
         return [
             'category_id' => ['nullable', 'integer', Rule::exists('tour_categories', 'id')->whereNull('deleted_at')],
@@ -54,6 +56,9 @@ final class UpsertTourRequest extends FormRequest
             'itinerary.*.duration_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'itinerary.*.optional' => ['required', 'boolean'],
             'itinerary.*.notes' => ['nullable', 'string', 'max:5000'],
+            'car_type_prices' => [Rule::requiredIf($requiresCarTypePrices), 'array', 'size:5'],
+            'car_type_prices.*.type' => ['required', Rule::enum(CarType::class), 'distinct'],
+            'car_type_prices.*.price_minor' => ['required', 'integer', 'min:0'],
         ];
     }
 }

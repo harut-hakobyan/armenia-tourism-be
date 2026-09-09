@@ -75,6 +75,9 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.title', 'Garni & Geghard Private Tour')
             ->assertJsonPath('data.category.slug', 'historical')
+            ->assertJsonPath('data.car_type_prices.0.type', 'coupe')
+            ->assertJsonPath('data.car_type_prices.1.type', 'sedan')
+            ->assertJsonPath('data.car_type_prices.2.type', 'minivan')
             ->assertJsonCount(5, 'data.itinerary')
             ->assertJsonPath('data.itinerary.1.destination.slug', 'garni');
 
@@ -181,6 +184,24 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
             ->assertJsonPath('data.passengers', 2)
             ->assertJsonPath('data.price.total_minor', 5000);
+    }
+
+    public function test_private_tour_estimate_uses_that_tours_selected_car_type_price(): void
+    {
+        $this->seed();
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+        $minivan = Car::query()->where('type', 'minivan')->firstOrFail();
+        $tour->prices()->where('car_type', 'minivan')->update(['fixed_price_minor' => 32100]);
+
+        $this->postJson('/api/v1/pricing/tours/estimate', [
+            'tour_id' => $tour->id,
+            'car_id' => $minivan->id,
+            'booking_date' => now()->addDays(30)->toDateString(),
+            'passengers' => 4,
+        ])->assertOk()
+            ->assertJsonPath('data.car.type', 'minivan')
+            ->assertJsonPath('data.price.base_minor', 32100)
+            ->assertJsonPath('data.price.total_minor', 32100);
     }
 
     public function test_premium_custom_trip_rejects_multiple_vehicle_allocation(): void

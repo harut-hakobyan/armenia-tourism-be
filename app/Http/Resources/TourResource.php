@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Enums\CarType;
 use App\Http\Resources\Concerns\ResolvesTranslation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -36,6 +37,15 @@ final class TourResource extends JsonResource
                 'currency' => $this->currency->value,
                 'pricing_type' => $this->pricing_type->value,
             ],
+            'car_type_prices' => $this->whenLoaded('prices', fn () => collect(CarType::cases())->map(function (CarType $type): array {
+                $price = $this->prices->first(fn ($price) => $price->car_type === $type && $price->active);
+
+                return [
+                    'type' => $type->value,
+                    'amount_minor' => $price?->fixed_price_minor ?? 0,
+                    'currency' => $price?->currency->value ?? $this->currency->value,
+                ];
+            })),
             'format' => $this->format->value,
             'start_time' => $this->start_time ? substr((string) $this->start_time, 0, 5) : null,
             'meeting_point' => $this->meeting_point,

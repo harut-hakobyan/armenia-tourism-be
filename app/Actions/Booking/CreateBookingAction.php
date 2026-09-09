@@ -91,12 +91,11 @@ final class CreateBookingAction
             if (! $car) {
                 throw new BookingUnavailableException('The selected vehicle is not available.');
             }
-            if (($data->serviceOptions['vehicle_class'] ?? null) === 'premium'
-                && $car->category !== CarCategory::Premium) {
+            $isPremium = ($data->serviceOptions['vehicle_class'] ?? null) === 'premium';
+            if ($isPremium && $car->category !== CarCategory::Premium) {
                 throw new BookingUnavailableException('A Premium-class trip requires a Premium vehicle.');
             }
-            if (($data->serviceOptions['vehicle_class'] ?? null) === 'premium'
-                && $data->passengers > $car->passenger_capacity) {
+            if ($isPremium && $data->passengers > $car->passenger_capacity) {
                 throw new BookingUnavailableException('Passenger count exceeds the selected Premium vehicle capacity.');
             }
             $startsAt = $tour?->format === TourFormat::Group && $tour->start_time
@@ -110,9 +109,9 @@ final class CreateBookingAction
                 ? PromoCode::query()->where('code', mb_strtoupper(trim($data->promoCode)))->lockForUpdate()->first()
                 : null;
 
-            if ($data->serviceType !== ServiceType::CustomTrip
-                && $tour?->format !== TourFormat::Group
-                && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
+            // A concrete fleet vehicle is reserved only for Premium bookings.
+            // Other bookings use the selected vehicle as a pricing/capacity template.
+            if ($isPremium && ! $this->availability->isCarAvailable($car, $startsAt, $endsAt)) {
                 throw new BookingUnavailableException('The selected car is no longer available for this time.');
             }
 
@@ -132,7 +131,8 @@ final class CreateBookingAction
                 'customer_id' => $customer->id,
                 'tour_id' => $tour?->id,
                 'group_tour_departure_id' => null,
-                'car_id' => $car->id,
+                'car_id' => $isPremium ? $car->id : null,
+                'requested_car_type' => $car->type,
                 'driver_id' => null,
                 'promo_code_id' => $promo?->id,
                 'service_type' => $data->serviceType,

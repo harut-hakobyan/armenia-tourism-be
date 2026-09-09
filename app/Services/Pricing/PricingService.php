@@ -38,27 +38,18 @@ final class PricingService
             throw new InvalidArgumentException('Passenger count exceeds the selected tour capacity.');
         }
 
-        [$carTypePriceMinor, $carCurrency] = $this->typePrice($car);
-        if ($tour->currency !== $carCurrency) {
-            throw new DomainException('Tour and car currencies do not match.');
-        }
-
-        $baseMinor = match ($tour->pricing_type) {
-            PricingType::PerCar, PricingType::Fixed => $tour->starting_price_minor,
-            PricingType::PerPerson => $tour->starting_price_minor * $passengers,
-            PricingType::Custom => throw new DomainException('This tour requires a custom quote.'),
-        };
-
         $adjustments = [];
-
         if ($tour->format === TourFormat::Private) {
-            [$sedanPriceMinor, $sedanCurrency] = $this->typePrice(CarType::Sedan);
-            if ($sedanCurrency !== $carCurrency) {
-                throw new DomainException('Vehicle type currencies do not match.');
+            [$baseMinor, $priceCurrency] = $this->privateTourTypePrice($tour, $car->type, $date);
+            if ($tour->currency !== $priceCurrency) {
+                throw new DomainException('Tour and vehicle-type price currencies do not match.');
             }
-            if ($carTypePriceMinor !== $sedanPriceMinor) {
-                $adjustments['car_type'] = $carTypePriceMinor - $sedanPriceMinor;
-            }
+        } else {
+            $baseMinor = match ($tour->pricing_type) {
+                PricingType::PerCar, PricingType::Fixed => $tour->starting_price_minor,
+                PricingType::PerPerson => $tour->starting_price_minor * $passengers,
+                PricingType::Custom => throw new DomainException('This tour requires a custom quote.'),
+            };
         }
 
         return $this->buildBreakdown($baseMinor, $adjustments, $tour->currency, $promoCode, $customerEmail);
@@ -197,6 +188,24 @@ final class PricingService
         if ($distanceMeters < 0 || $durationMinutes < 0) {
             throw new InvalidArgumentException('Distance and duration cannot be negative.');
         }
+    }
+
+    /** @return array{int, CurrencyCode} */
+    private function privateTourTypePrice(Tour $tour, CarType $type, CarbonImmutable $date): array
+    {
+        $price = $tour->prices()
+            ->where('active', true)
+            ->where('car_type', $type->value)
+            ->where(fn ($query) => $query->whereNull('valid_from')->orWhere('valid_from', '<=', $date->toDateString()))
+            ->where(fn ($query) => $query->whereNull('valid_until')->orWhere('valid_until', '>=', $date->toDateString()))
+            ->orderByDesc('valid_from')
+            ->first();
+
+        if (! $price || $price->fixed_price_minor === null) {
+            throw new DomainException('The selected vehicle type is not priced for this tour.');
+        }
+
+        return [$price->fixed_price_minor, $price->currency];
     }
 
     /** @return array{int, CurrencyCode} */

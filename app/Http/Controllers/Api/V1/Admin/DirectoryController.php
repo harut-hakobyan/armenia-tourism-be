@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\CarCategory;
 use App\Enums\CarType;
 use App\Enums\CurrencyCode;
+use App\Enums\PricingType;
+use App\Enums\TourFormat;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpsertDestinationRequest;
@@ -35,7 +37,7 @@ final class DirectoryController extends Controller
 {
     public function tours(Request $request): JsonResponse
     {
-        $tours = Tour::query()->with(['translations', 'media', 'stops.destination.translations'])->orderBy('sort_order')->paginate($this->perPage($request));
+        $tours = Tour::query()->with(['translations', 'media', 'prices', 'stops.destination.translations'])->orderBy('sort_order')->paginate($this->perPage($request));
 
         return response()->json($tours->through(fn (Tour $tour): array => (new AdminTourResource($tour))->resolve($request)));
     }
@@ -63,8 +65,9 @@ final class DirectoryController extends Controller
     {
         $tour = DB::transaction(function () use ($request): Tour {
             $validated = $request->validated();
-            $tour = Tour::query()->create(Arr::except($validated, ['translations', 'itinerary']));
+            $tour = Tour::query()->create(Arr::except($validated, ['translations', 'itinerary', 'car_type_prices']));
             $this->syncTranslations($tour, $validated['translations']);
+            $this->syncTourCarTypePrices($tour, $validated['car_type_prices'] ?? []);
             if (isset($validated['itinerary'])) {
                 $this->syncTourItinerary($tour, $validated['itinerary']);
             }
@@ -73,23 +76,26 @@ final class DirectoryController extends Controller
         });
         $audit->record($request->user(), 'tours.created', $tour, [], $tour->toArray(), $request->ip());
 
-        return response()->json(['data' => (new AdminTourResource($tour->load(['translations', 'media', 'stops.destination.translations'])))->resolve($request)], 201);
+        return response()->json(['data' => (new AdminTourResource($tour->load(['translations', 'media', 'prices', 'stops.destination.translations'])))->resolve($request)], 201);
     }
 
     public function updateTour(UpsertTourRequest $request, Tour $tour, AuditLogger $audit): JsonResponse
     {
-        $old = $tour->load(['translations', 'stops'])->toArray();
+        $old = $tour->load(['translations', 'prices', 'stops'])->toArray();
         DB::transaction(function () use ($request, $tour): void {
             $validated = $request->validated();
-            $tour->update(Arr::except($validated, ['translations', 'itinerary']));
+            $tour->update(Arr::except($validated, ['translations', 'itinerary', 'car_type_prices']));
             if (isset($validated['translations'])) {
                 $this->syncTranslations($tour, $validated['translations']);
             }
             if (isset($validated['itinerary'])) {
                 $this->syncTourItinerary($tour, $validated['itinerary']);
             }
+            if (array_key_exists('car_type_prices', $validated) || array_key_exists('format', $validated)) {
+                $this->syncTourCarTypePrices($tour, $validated['car_type_prices'] ?? []);
+            }
         });
-        $tour->refresh()->load(['translations', 'media', 'stops.destination.translations']);
+        $tour->refresh()->load(['translations', 'media', 'prices', 'stops.destination.translations']);
         $audit->record($request->user(), 'tours.updated', $tour, $old, $tour->toArray(), $request->ip());
 
         return response()->json(['data' => (new AdminTourResource($tour))->resolve($request)]);
@@ -135,6 +141,42 @@ final class DirectoryController extends Controller
                 'notes' => $stop['notes'] ?? null,
             ]);
         }
+    }
+
+    /** @param array<int, array{type: string, price_minor: int}> $prices */
+    private function syncTourCarTypePrices(Tour $tour, array $prices): void
+    {
+        if ($tour->format !== TourFormat::Private) {
+            $tour->prices()->whereNotNull('car_type')->delete();
+
+            return;
+        }
+
+        $types = [];
+        foreach ($prices as $price) {
+            $type = CarType::from($price['type']);
+            $types[] = $type->value;
+            $tour->prices()->updateOrCreate(
+                ['car_type' => $type->value],
+                [
+                    'car_category' => null,
+                    'min_passengers' => 1,
+                    'max_passengers' => $type->passengerCapacity(),
+                    'valid_from' => null,
+                    'valid_until' => null,
+                    'fixed_price_minor' => $price['price_minor'],
+                    'adjustment_minor' => 0,
+                    'currency' => $tour->currency,
+                    'active' => true,
+                ],
+            );
+        }
+
+        $tour->prices()->whereNotNull('car_type')->whereNotIn('car_type', $types)->delete();
+        $tour->update([
+            'starting_price_minor' => collect($prices)->min('price_minor') ?? 0,
+            'pricing_type' => PricingType::PerCar,
+        ]);
     }
 
     public function storeDestination(UpsertDestinationRequest $request, AuditLogger $audit): JsonResponse

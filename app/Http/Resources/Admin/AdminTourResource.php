@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Admin;
 
+use App\Enums\CarType;
 use App\Http\Resources\MediaResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -35,6 +36,11 @@ final class AdminTourResource extends JsonResource
             'dropoff_available' => $this->dropoff_available,
             'free_cancellation_hours' => $this->free_cancellation_hours,
             'sort_order' => $this->sort_order,
+            'car_type_prices' => $this->whenLoaded('prices', fn () => collect(CarType::cases())->map(function (CarType $type): array {
+                $price = $this->prices->first(fn ($price) => $price->car_type === $type && $price->active);
+
+                return ['type' => $type->value, 'price_minor' => $price?->fixed_price_minor ?? 0];
+            })),
             'translations' => $this->translations->map->only([
                 'locale', 'title', 'short_description', 'description', 'seo_title', 'seo_description',
             ])->values(),

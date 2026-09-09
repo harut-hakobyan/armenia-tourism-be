@@ -9,7 +9,9 @@ return [
         'admin_email' => env('BOOKING_ADMIN_EMAIL', 'admin@armeniatourism.local'),
     ],
 
-    'booking_assignment_enabled' => env('BOOKING_ASSIGNMENT_ENABLED', false),
+    // Operational car/driver assignment is intentionally disabled. Premium
+    // vehicles are reserved during customer booking creation instead.
+    'booking_assignment_enabled' => false,
 
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
