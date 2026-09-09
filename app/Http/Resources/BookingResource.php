@@ -35,6 +35,7 @@ final class BookingResource extends JsonResource
                 'longitude' => $this->dropoff_longitude,
             ],
             'passengers' => $this->passengers,
+            'requested_car_type' => $this->requested_car_type?->value,
             'attendance' => [
                 'status' => $this->attendance_status->value,
                 'checked_in_passengers' => $this->checked_in_passengers,
@@ -48,12 +49,12 @@ final class BookingResource extends JsonResource
                 'whatsapp' => $this->customer_whatsapp,
                 'nationality' => $this->customer_nationality,
             ],
-            'car' => $this->whenLoaded('car', fn (): array => [
+            'car' => $this->whenLoaded('car', fn (): ?array => $this->car ? [
                 'id' => $this->car->id,
                 'name' => "{$this->car->brand} {$this->car->model}",
                 'category' => $this->car->category->value,
                 'type' => $this->car->type->value,
-            ]),
+            ] : null),
             'driver' => $this->whenLoaded('driver', fn (): ?array => $this->driver ? [
                 'name' => "{$this->driver->first_name} {$this->driver->last_name}",
                 'phone' => $this->driver->phone,

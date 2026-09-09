@@ -37,6 +37,13 @@ final class CatalogManagementTest extends TestCase
             'dropoff_available' => true,
             'free_cancellation_hours' => 24,
             'sort_order' => 20,
+            'car_type_prices' => [
+                ['type' => 'coupe', 'price_minor' => 9000],
+                ['type' => 'sedan', 'price_minor' => 9500],
+                ['type' => 'minivan', 'price_minor' => 14000],
+                ['type' => 'minibus', 'price_minor' => 18000],
+                ['type' => 'bus', 'price_minor' => 25000],
+            ],
             'translations' => [[
                 'locale' => 'en',
                 'title' => 'Armenia Highlights',
@@ -50,17 +57,28 @@ final class CatalogManagementTest extends TestCase
         $created = $this->actingAs($admin)->postJson('/api/v1/admin/directory/tours', $payload)
             ->assertCreated()
             ->assertJsonPath('data.slug', 'armenia-highlights-test')
+            ->assertJsonPath('data.starting_price_minor', 9000)
+            ->assertJsonPath('data.car_type_prices.2.price_minor', 14000)
             ->assertJsonPath('data.translations.0.title', 'Armenia Highlights');
         $id = $created->json('data.id');
 
         $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$id}", [
             'featured' => true,
+            'car_type_prices' => [
+                ['type' => 'coupe', 'price_minor' => 10000],
+                ['type' => 'sedan', 'price_minor' => 11000],
+                ['type' => 'minivan', 'price_minor' => 15000],
+                ['type' => 'minibus', 'price_minor' => 19000],
+                ['type' => 'bus', 'price_minor' => 26000],
+            ],
             'translations' => [[
                 'locale' => 'en',
                 'title' => 'Updated Armenia Highlights',
             ]],
         ])->assertOk()
             ->assertJsonPath('data.featured', true)
+            ->assertJsonPath('data.starting_price_minor', 10000)
+            ->assertJsonPath('data.car_type_prices.1.price_minor', 11000)
             ->assertJsonPath('data.translations.0.title', 'Updated Armenia Highlights');
 
         $this->actingAs($admin)->getJson('/api/v1/admin/directory/tours?per_page=100')
@@ -107,6 +125,32 @@ final class CatalogManagementTest extends TestCase
 
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/destinations/{$id}")->assertNoContent();
         $this->assertSoftDeleted('destinations', ['id' => $id]);
+    }
+
+    public function test_manager_can_change_each_vehicle_type_price_for_a_private_tour(): void
+    {
+        $this->seed();
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+        $prices = [
+            ['type' => 'coupe', 'price_minor' => 8000],
+            ['type' => 'sedan', 'price_minor' => 9000],
+            ['type' => 'minivan', 'price_minor' => 15000],
+            ['type' => 'minibus', 'price_minor' => 20000],
+            ['type' => 'bus', 'price_minor' => 30000],
+        ];
+
+        $this->actingAs($manager)->patchJson("/api/v1/admin/directory/tours/{$tour->id}", [
+            'car_type_prices' => $prices,
+        ])->assertOk()
+            ->assertJsonPath('data.starting_price_minor', 8000)
+            ->assertJsonPath('data.car_type_prices.4.price_minor', 30000);
+
+        $this->assertDatabaseHas('tour_prices', [
+            'tour_id' => $tour->id,
+            'car_type' => 'minibus',
+            'fixed_price_minor' => 20000,
+        ]);
     }
 
     public function test_admin_can_update_a_group_tour_schedule(): void

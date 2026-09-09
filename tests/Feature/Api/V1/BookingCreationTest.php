@@ -35,6 +35,7 @@ final class BookingCreationTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.service_type', 'tour')
             ->assertJsonPath('data.booking_status', 'pending')
+            ->assertJsonPath('data.car', null)
             ->assertJsonPath('data.price.subtotal_minor', 7000)
             ->assertJsonPath('data.price.discount_minor', 700)
             ->assertJsonPath('data.price.total_minor', 6300);
@@ -48,6 +49,8 @@ final class BookingCreationTest extends TestCase
             'booking_number' => $bookingNumber,
             'customer_email' => 'guest@example.com',
             'total_minor' => 6300,
+            'car_id' => null,
+            'requested_car_type' => 'sedan',
             'driver_id' => null,
         ]);
         $this->assertDatabaseCount('tour_booking_details', 1);
@@ -82,19 +85,73 @@ final class BookingCreationTest extends TestCase
         $this->assertDatabaseCount('bookings', 1);
     }
 
-    public function test_overlapping_booking_is_rejected_inside_transaction(): void
+    public function test_non_premium_bookings_do_not_reserve_the_pricing_car(): void
     {
         $this->seed();
         $payload = $this->tourPayload();
-        $this->postJson('/api/v1/bookings', $payload)->assertCreated();
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.car', null);
 
         $payload['idempotency_key'] = (string) Str::uuid();
         $payload['customer_email'] = 'second@example.com';
 
         $this->postJson('/api/v1/bookings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.car', null);
+
+        $this->assertDatabaseCount('bookings', 2);
+        $this->assertSame(0, Booking::query()->whereNotNull('car_id')->count());
+        $this->assertSame(0, Booking::query()->whereNotNull('driver_id')->count());
+    }
+
+    public function test_private_tour_booking_uses_selected_vehicle_type_price_without_reserving_a_car(): void
+    {
+        $this->seed();
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+        $minivan = Car::query()->where('type', 'minivan')->firstOrFail();
+        $tour->prices()->where('car_type', 'minivan')->update(['fixed_price_minor' => 32100]);
+        $payload = $this->basePayload('tour', $minivan->id, now()->addDays(30)->toDateString());
+        $payload['tour_id'] = $tour->id;
+
+        $response = $this->postJson('/api/v1/bookings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.car', null)
+            ->assertJsonPath('data.requested_car_type', 'minivan')
+            ->assertJsonPath('data.price.breakdown.base_minor', 32100)
+            ->assertJsonPath('data.price.total_minor', 32100);
+
+        $this->assertDatabaseHas('bookings', [
+            'booking_number' => $response->json('data.booking_number'),
+            'car_id' => null,
+            'requested_car_type' => 'minivan',
+            'driver_id' => null,
+            'total_minor' => 32100,
+        ]);
+    }
+
+    public function test_premium_booking_reserves_the_selected_car_and_rejects_an_overlap(): void
+    {
+        $this->seed();
+        $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
+        $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
+        $payload = $this->basePayload('tour', $car->id, now()->addDays(30)->toDateString());
+        $payload['tour_id'] = $tour->id;
+        $payload['service_options'] = ['vehicle_class' => 'premium'];
+
+        $this->postJson('/api/v1/bookings', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.car.id', $car->id);
+        $this->assertDatabaseHas('bookings', [
+            'car_id' => $car->id,
+            'driver_id' => null,
+        ]);
+
+        $payload['idempotency_key'] = (string) Str::uuid();
+        $payload['customer_email'] = 'second-premium@example.com';
+        $this->postJson('/api/v1/bookings', $payload)
             ->assertUnprocessable()
             ->assertJsonPath('message', 'The selected car is no longer available for this time.');
-        $this->assertDatabaseCount('bookings', 1);
     }
 
     public function test_group_tour_books_passengers_without_departure_inventory(): void

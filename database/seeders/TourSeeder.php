@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Enums\TourFormat;
@@ -171,6 +172,7 @@ final class TourSeeder extends Seeder
                 $this->seedPrice($tour, CarCategory::Comfort, $data['price'], 0);
                 $this->seedPrice($tour, CarCategory::Suv, null, 4000);
                 $this->seedPrice($tour, CarCategory::Minivan, null, 6000);
+                $this->seedCarTypePrices($tour, $data['price']);
             }
         }
     }
@@ -190,5 +192,33 @@ final class TourSeeder extends Seeder
                 'active' => true,
             ],
         );
+    }
+
+    private function seedCarTypePrices(Tour $tour, int $sedanPrice): void
+    {
+        $adjustments = [
+            CarType::Coupe->value => 0,
+            CarType::Sedan->value => 0,
+            CarType::Minivan->value => 7000,
+            CarType::Minibus->value => 11000,
+            CarType::Bus->value => 18000,
+        ];
+
+        foreach (CarType::cases() as $type) {
+            TourPrice::query()->updateOrCreate(
+                ['tour_id' => $tour->id, 'car_type' => $type->value],
+                [
+                    'car_category' => null,
+                    'min_passengers' => 1,
+                    'max_passengers' => $type->passengerCapacity(),
+                    'valid_from' => null,
+                    'valid_until' => null,
+                    'fixed_price_minor' => $sedanPrice + $adjustments[$type->value],
+                    'adjustment_minor' => 0,
+                    'currency' => CurrencyCode::Eur,
+                    'active' => true,
+                ],
+            );
+        }
     }
 }

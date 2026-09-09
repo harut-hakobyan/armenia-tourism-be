@@ -34,7 +34,12 @@ final class CatalogFoundationTest extends TestCase
         $this->assertDatabaseCount('tour_translations', 30);
         $this->assertDatabaseCount('tour_days', 11);
         $this->assertDatabaseCount('tour_stops', 44);
-        $this->assertDatabaseCount('tour_prices', 24);
+        $this->assertDatabaseCount('tour_prices', 64);
+        $this->assertSame(40, Tour::query()
+            ->where('format', 'private')
+            ->withCount(['prices' => fn ($query) => $query->whereNotNull('car_type')])
+            ->get()
+            ->sum('prices_count'));
         $this->assertDatabaseCount('group_tour_departures', 0);
         $groupTour = Tour::query()->where('slug', 'garni-geghard-group-tour')->firstOrFail();
         $this->assertSame('09:00', substr((string) $groupTour->start_time, 0, 5));
