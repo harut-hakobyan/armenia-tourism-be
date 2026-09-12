@@ -13,6 +13,7 @@ use App\Data\RouteResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\BookingStatus;
 use App\Enums\CarCategory;
+use App\Enums\CarType;
 use App\Enums\PaymentStatus;
 use App\Enums\ServiceType;
 use App\Enums\TourFormat;
@@ -91,8 +92,14 @@ final class CreateBookingAction
             if (! $car) {
                 throw new BookingUnavailableException('The selected vehicle is not available.');
             }
-            $isPremium = ($data->serviceOptions['vehicle_class'] ?? null) === 'premium';
-            if ($isPremium && $car->category !== CarCategory::Premium) {
+            $isPremierTour = $data->serviceType === ServiceType::Tour
+                && $tour?->format === TourFormat::Private
+                && $car->type === CarType::Premier;
+            $premiumClassRequested = ($data->serviceOptions['vehicle_class'] ?? null) === 'premium';
+            $isPremium = $premiumClassRequested || $isPremierTour;
+            if ($premiumClassRequested
+                && $car->category !== CarCategory::Premium
+                && $car->type !== CarType::Premier) {
                 throw new BookingUnavailableException('A Premium-class trip requires a Premium vehicle.');
             }
             if ($isPremium && $data->passengers > $car->passenger_capacity) {

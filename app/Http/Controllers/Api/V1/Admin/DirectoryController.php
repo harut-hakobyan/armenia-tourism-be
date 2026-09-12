@@ -161,7 +161,7 @@ final class DirectoryController extends Controller
                 [
                     'car_category' => null,
                     'min_passengers' => 1,
-                    'max_passengers' => $type->passengerCapacity(),
+                    'max_passengers' => $type->fixedPassengerCapacity(),
                     'valid_from' => null,
                     'valid_until' => null,
                     'fixed_price_minor' => $price['price_minor'],
@@ -231,7 +231,7 @@ final class DirectoryController extends Controller
         $type = CarType::from($data['type']);
         $car = Car::query()->create([
             ...$data,
-            'passenger_capacity' => $type->passengerCapacity(),
+            'passenger_capacity' => $type->fixedPassengerCapacity() ?? $data['passenger_capacity'],
             ...$this->typePriceSnapshot($type),
         ]);
         $audit->record($request->user(), 'cars.created', $car, [], $car->toArray(), $request->ip());
@@ -249,7 +249,7 @@ final class DirectoryController extends Controller
 
             return [
                 'type' => $type->value,
-                'passenger_capacity' => $type->passengerCapacity(),
+                'passenger_capacity' => $type->fixedPassengerCapacity(),
                 'fixed_price_minor' => $price->fixed_price_minor,
                 'price_per_km_minor' => $price->price_per_km_minor,
                 'currency' => $price->currency->value,
@@ -271,18 +271,21 @@ final class DirectoryController extends Controller
         $price = CarTypePrice::query()->firstOrCreate(['type' => $typeEnum->value]);
         $old = $price->toArray();
         $price->update($validated);
-        Car::query()->where('type', $typeEnum->value)->update([
-            'passenger_capacity' => $typeEnum->passengerCapacity(),
+        $carChanges = [
             'base_price_minor' => $price->fixed_price_minor,
             'price_per_km_minor' => $price->price_per_km_minor,
             'price_per_hour_minor' => 0,
             'currency' => $price->currency->value,
-        ]);
+        ];
+        if (($fixedCapacity = $typeEnum->fixedPassengerCapacity()) !== null) {
+            $carChanges['passenger_capacity'] = $fixedCapacity;
+        }
+        Car::query()->where('type', $typeEnum->value)->update($carChanges);
         $audit->record($request->user(), 'car_type_prices.updated', $price, $old, $price->toArray(), $request->ip());
 
         return response()->json(['data' => [
             'type' => $price->type->value,
-            'passenger_capacity' => $typeEnum->passengerCapacity(),
+            'passenger_capacity' => $typeEnum->fixedPassengerCapacity(),
             'fixed_price_minor' => $price->fixed_price_minor,
             'price_per_km_minor' => $price->price_per_km_minor,
             'currency' => $price->currency->value,
@@ -408,9 +411,11 @@ final class DirectoryController extends Controller
                 $type = CarType::from($changes['type']);
                 $changes = [
                     ...$changes,
-                    'passenger_capacity' => $type->passengerCapacity(),
                     ...$this->typePriceSnapshot($type),
                 ];
+                if (($fixedCapacity = $type->fixedPassengerCapacity()) !== null) {
+                    $changes['passenger_capacity'] = $fixedCapacity;
+                }
             }
             $old = $model->only(array_keys($changes));
             $model->update($changes);
@@ -455,6 +460,9 @@ final class DirectoryController extends Controller
     private function validateCar(Request $request, ?Car $car = null): array
     {
         $presence = $car === null ? 'required' : 'sometimes';
+        $effectiveType = CarType::tryFrom((string) $request->input('type', $car?->type?->value));
+        $requiresPassengerCapacity = $effectiveType === CarType::Premier
+            && ($car === null || $car->type !== CarType::Premier);
 
         return $request->validate([
             'brand' => [$presence, 'string', 'max:100'],
@@ -464,6 +472,13 @@ final class DirectoryController extends Controller
             'color' => ['nullable', 'string', 'max:50'],
             'category' => [$presence, Rule::enum(CarCategory::class)],
             'type' => [$presence, Rule::enum(CarType::class)],
+            'passenger_capacity' => [
+                Rule::prohibitedIf($effectiveType !== CarType::Premier),
+                Rule::requiredIf($requiresPassengerCapacity),
+                'integer',
+                'min:1',
+                'max:255',
+            ],
             'luggage_capacity' => [$presence, 'integer', 'min:0', 'max:50'],
             'transmission' => ['nullable', 'string', 'max:20'],
             'air_conditioning' => [$presence, 'boolean'],
