@@ -35,6 +35,7 @@ final class UpsertTourRequest extends FormRequest
             'pricing_type' => [$required, Rule::enum(PricingType::class)],
             'format' => [$required, Rule::enum(TourFormat::class)],
             'start_time' => ['nullable', 'required_if:format,group', 'date_format:H:i'],
+            'end_time' => ['nullable', 'required_if:format,group', 'date_format:H:i', 'different:start_time'],
             'meeting_point' => ['nullable', 'required_if:format,group', 'string', 'max:255'],
             'active' => [$required, 'boolean'],
             'featured' => [$required, 'boolean'],
