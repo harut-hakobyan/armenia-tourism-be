@@ -38,7 +38,7 @@ final class CatalogManagementTest extends TestCase
             'free_cancellation_hours' => 24,
             'sort_order' => 20,
             'car_type_prices' => [
-                ['type' => 'coupe', 'price_minor' => 9000],
+                ['type' => 'premier', 'price_minor' => 9000],
                 ['type' => 'sedan', 'price_minor' => 9500],
                 ['type' => 'minivan', 'price_minor' => 14000],
                 ['type' => 'minibus', 'price_minor' => 18000],
@@ -65,7 +65,7 @@ final class CatalogManagementTest extends TestCase
         $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$id}", [
             'featured' => true,
             'car_type_prices' => [
-                ['type' => 'coupe', 'price_minor' => 10000],
+                ['type' => 'premier', 'price_minor' => 10000],
                 ['type' => 'sedan', 'price_minor' => 11000],
                 ['type' => 'minivan', 'price_minor' => 15000],
                 ['type' => 'minibus', 'price_minor' => 19000],
@@ -133,7 +133,7 @@ final class CatalogManagementTest extends TestCase
         $manager = User::factory()->create(['role' => UserRole::Manager]);
         $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
         $prices = [
-            ['type' => 'coupe', 'price_minor' => 8000],
+            ['type' => 'premier', 'price_minor' => 8000],
             ['type' => 'sedan', 'price_minor' => 9000],
             ['type' => 'minivan', 'price_minor' => 15000],
             ['type' => 'minibus', 'price_minor' => 20000],
@@ -150,6 +150,12 @@ final class CatalogManagementTest extends TestCase
             'tour_id' => $tour->id,
             'car_type' => 'minibus',
             'fixed_price_minor' => 20000,
+        ]);
+        $this->assertDatabaseHas('tour_prices', [
+            'tour_id' => $tour->id,
+            'car_type' => 'premier',
+            'fixed_price_minor' => 8000,
+            'max_passengers' => null,
         ]);
     }
 

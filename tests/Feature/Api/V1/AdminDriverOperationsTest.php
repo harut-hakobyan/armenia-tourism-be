@@ -37,7 +37,7 @@ final class AdminDriverOperationsTest extends TestCase
         $this->actingAs($manager)->getJson('/api/v1/admin/directory/car-type-prices')
             ->assertOk()
             ->assertJsonCount(5, 'data')
-            ->assertJsonFragment(['type' => 'coupe', 'passenger_capacity' => 3]);
+            ->assertJsonFragment(['type' => 'premier', 'passenger_capacity' => null]);
         $this->actingAs($manager)->patchJson('/api/v1/admin/directory/car-type-prices/minibus', [
             'fixed_price_minor' => 22200,
             'price_per_km_minor' => 175,
@@ -73,6 +73,42 @@ final class AdminDriverOperationsTest extends TestCase
         $this->actingAs($manager)->deleteJson("/api/v1/admin/directory/cars/{$carId}")
             ->assertNoContent();
         $this->assertSoftDeleted('cars', ['id' => $carId]);
+    }
+
+    public function test_premier_cars_keep_individual_passenger_capacities_when_prices_change(): void
+    {
+        $manager = User::factory()->create(['role' => UserRole::Manager]);
+        $payload = [
+            'brand' => 'Mercedes-Benz', 'model' => 'V-Class Premier', 'year' => 2025,
+            'plate_number' => 'AMT-778', 'color' => 'Black', 'category' => 'premium',
+            'type' => 'premier', 'passenger_capacity' => 6, 'luggage_capacity' => 5,
+            'transmission' => 'automatic', 'air_conditioning' => true, 'wifi' => true,
+            'child_seat_available' => true, 'active' => true, 'available_for_booking' => true,
+        ];
+
+        $created = $this->actingAs($manager)->postJson('/api/v1/admin/directory/cars', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.type', 'premier')
+            ->assertJsonPath('data.passenger_capacity', 6);
+        $carId = (int) $created->json('data.id');
+
+        $this->actingAs($manager)->patchJson('/api/v1/admin/directory/car-type-prices/premier', [
+            'fixed_price_minor' => 30000,
+            'price_per_km_minor' => 250,
+            'currency' => 'EUR',
+        ])->assertOk()
+            ->assertJsonPath('data.passenger_capacity', null);
+
+        $this->assertDatabaseHas('cars', [
+            'id' => $carId,
+            'type' => 'premier',
+            'passenger_capacity' => 6,
+            'base_price_minor' => 30000,
+        ]);
+
+        $this->actingAs($manager)->patchJson("/api/v1/admin/directory/cars/{$carId}", [
+            'passenger_capacity' => 7,
+        ])->assertOk()->assertJsonPath('data.passenger_capacity', 7);
     }
 
     public function test_car_assigned_to_future_group_departures_cannot_be_deleted(): void

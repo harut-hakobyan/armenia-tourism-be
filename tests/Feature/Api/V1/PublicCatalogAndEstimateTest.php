@@ -75,7 +75,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.title', 'Garni & Geghard Private Tour')
             ->assertJsonPath('data.category.slug', 'historical')
-            ->assertJsonPath('data.car_type_prices.0.type', 'coupe')
+            ->assertJsonPath('data.car_type_prices.0.type', 'premier')
             ->assertJsonPath('data.car_type_prices.1.type', 'sedan')
             ->assertJsonPath('data.car_type_prices.2.type', 'minivan')
             ->assertJsonCount(5, 'data.itinerary')
@@ -97,6 +97,13 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.0.passenger_capacity', 10)
             ->assertJsonPath('data.0.rates.currency', 'EUR')
             ->assertJsonMissingPath('data.0.plate_number');
+
+        $this->getJson('/api/v1/cars?category=premium&type=premier')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Mercedes-Benz S-Class')
+            ->assertJsonPath('data.0.type', 'premier')
+            ->assertJsonPath('data.0.passenger_capacity', 3);
 
         $this->getJson('/api/v1/cars?child_seat=false')
             ->assertOk();

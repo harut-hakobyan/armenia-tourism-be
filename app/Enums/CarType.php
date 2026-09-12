@@ -6,16 +6,16 @@ namespace App\Enums;
 
 enum CarType: string
 {
-    case Coupe = 'coupe';
+    case Premier = 'premier';
     case Sedan = 'sedan';
     case Minivan = 'minivan';
     case Minibus = 'minibus';
     case Bus = 'bus';
 
-    public function passengerCapacity(): int
+    public function fixedPassengerCapacity(): ?int
     {
         return match ($this) {
-            self::Coupe => 3,
+            self::Premier => null,
             self::Sedan => 4,
             self::Minivan => 6,
             self::Minibus => 10,

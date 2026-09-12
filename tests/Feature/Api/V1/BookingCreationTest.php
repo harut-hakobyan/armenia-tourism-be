@@ -130,25 +130,26 @@ final class BookingCreationTest extends TestCase
         ]);
     }
 
-    public function test_premium_booking_reserves_the_selected_car_and_rejects_an_overlap(): void
+    public function test_premier_private_tour_reserves_the_selected_car_and_rejects_an_overlap(): void
     {
         $this->seed();
         $tour = Tour::query()->where('slug', 'garni-geghard')->firstOrFail();
         $car = Car::query()->where('plate_number', 'AMT-601')->firstOrFail();
         $payload = $this->basePayload('tour', $car->id, now()->addDays(30)->toDateString());
         $payload['tour_id'] = $tour->id;
-        $payload['service_options'] = ['vehicle_class' => 'premium'];
 
         $this->postJson('/api/v1/bookings', $payload)
             ->assertCreated()
-            ->assertJsonPath('data.car.id', $car->id);
+            ->assertJsonPath('data.car.id', $car->id)
+            ->assertJsonPath('data.requested_car_type', 'premier');
         $this->assertDatabaseHas('bookings', [
             'car_id' => $car->id,
+            'requested_car_type' => 'premier',
             'driver_id' => null,
         ]);
 
         $payload['idempotency_key'] = (string) Str::uuid();
-        $payload['customer_email'] = 'second-premium@example.com';
+        $payload['customer_email'] = 'second-premier@example.com';
         $this->postJson('/api/v1/bookings', $payload)
             ->assertUnprocessable()
             ->assertJsonPath('message', 'The selected car is no longer available for this time.');
