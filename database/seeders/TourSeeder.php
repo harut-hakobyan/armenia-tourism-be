@@ -197,7 +197,7 @@ final class TourSeeder extends Seeder
     private function seedCarTypePrices(Tour $tour, int $sedanPrice): void
     {
         $adjustments = [
-            CarType::Coupe->value => 0,
+            CarType::Premier->value => 0,
             CarType::Sedan->value => 0,
             CarType::Minivan->value => 7000,
             CarType::Minibus->value => 11000,
@@ -210,7 +210,7 @@ final class TourSeeder extends Seeder
                 [
                     'car_category' => null,
                     'min_passengers' => 1,
-                    'max_passengers' => $type->passengerCapacity(),
+                    'max_passengers' => $type->fixedPassengerCapacity(),
                     'valid_from' => null,
                     'valid_until' => null,
                     'fixed_price_minor' => $sedanPrice + $adjustments[$type->value],
