@@ -180,6 +180,9 @@ final class BookingCreationTest extends TestCase
             'pickup_time' => '09:00:00',
             'pickup_address' => 'Republic Square, Yerevan',
         ]);
+        $booking = Booking::query()->where('tour_id', $tour->id)->firstOrFail();
+        $this->assertSame('17:00', $booking->planned_end_at->format('H:i'));
+        $this->assertSame('17:00', $booking->tourDetail->tour_snapshot['end_time']);
     }
 
     public function test_transfer_private_driver_and_custom_trip_store_service_specific_snapshots(): void

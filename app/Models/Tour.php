@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\CurrencyCode;
 use App\Enums\PricingType;
 use App\Enums\TourFormat;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,7 +23,7 @@ final class Tour extends Model
     protected $fillable = [
         'category_id', 'slug', 'duration_minutes', 'approximate_distance_km',
         'starting_price_minor', 'currency', 'pricing_type', 'format',
-        'start_time', 'meeting_point', 'active', 'featured',
+        'start_time', 'end_time', 'meeting_point', 'active', 'featured',
         'max_passengers', 'pickup_available', 'dropoff_available',
         'free_cancellation_hours', 'sort_order',
     ];
@@ -49,6 +50,27 @@ final class Tour extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('active', true);
+    }
+
+    public function scheduledStartAt(CarbonImmutable $date): ?CarbonImmutable
+    {
+        return $this->start_time
+            ? $date->setTimeFromTimeString((string) $this->start_time)
+            : null;
+    }
+
+    public function scheduledEndAt(CarbonImmutable $date): ?CarbonImmutable
+    {
+        if (! $this->end_time) {
+            return null;
+        }
+
+        $startsAt = $this->scheduledStartAt($date);
+        $endsAt = $date->setTimeFromTimeString((string) $this->end_time);
+
+        return $startsAt && $endsAt->lessThanOrEqualTo($startsAt)
+            ? $endsAt->addDay()
+            : $endsAt;
     }
 
     public function category(): BelongsTo
