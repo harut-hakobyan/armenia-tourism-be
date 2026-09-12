@@ -31,6 +31,9 @@ final class ServiceEstimateService
         ?string $customerEmail = null,
     ): array {
         $price = $this->pricing->calculateTour($tour, $car, $passengers, $date, $promoCode, $customerEmail);
+        $startsAt = $tour->scheduledStartAt($date);
+        $endsAt = $tour->scheduledEndAt($date)
+            ?? ($startsAt ? $startsAt->addMinutes($tour->duration_minutes) : null);
 
         return [
             'service_type' => ServiceType::Tour->value,
@@ -38,9 +41,8 @@ final class ServiceEstimateService
             'tour_format' => $tour->format->value,
             'car' => ['id' => $car->id, 'name' => "{$car->brand} {$car->model}", 'type' => $car->type->value],
             'booking_date' => $date->toDateString(),
-            'starts_at' => $tour->start_time
-                ? $date->setTimeFromTimeString((string) $tour->start_time)->toIso8601String()
-                : null,
+            'starts_at' => $startsAt?->toIso8601String(),
+            'ends_at' => $endsAt?->toIso8601String(),
             'meeting_point' => $tour->meeting_point,
             'passengers' => $passengers,
             'duration_minutes' => $tour->duration_minutes,

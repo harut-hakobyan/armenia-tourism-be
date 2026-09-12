@@ -15,6 +15,7 @@ use App\Models\TourCategory;
 use App\Models\TourDay;
 use App\Models\TourPrice;
 use App\Models\TourStop;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 
 final class TourSeeder extends Seeder
@@ -102,6 +103,9 @@ final class TourSeeder extends Seeder
                     'pricing_type' => isset($data['format']) ? PricingType::PerPerson : PricingType::PerCar,
                     'format' => $data['format'] ?? TourFormat::Private,
                     'start_time' => isset($data['format']) ? '09:00' : null,
+                    'end_time' => isset($data['format'])
+                        ? CarbonImmutable::createFromTime(9)->addMinutes($data['duration'])->format('H:i')
+                        : null,
                     'meeting_point' => isset($data['format']) ? 'Republic Square, Yerevan' : null,
                     'active' => true,
                     'featured' => $data['featured'],

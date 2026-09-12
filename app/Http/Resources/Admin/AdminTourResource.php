@@ -28,6 +28,7 @@ final class AdminTourResource extends JsonResource
             'pricing_type' => $this->pricing_type->value,
             'format' => $this->format->value,
             'start_time' => $this->start_time ? substr((string) $this->start_time, 0, 5) : null,
+            'end_time' => $this->end_time ? substr((string) $this->end_time, 0, 5) : null,
             'meeting_point' => $this->meeting_point,
             'active' => $this->active,
             'featured' => $this->featured,

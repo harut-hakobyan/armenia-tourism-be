@@ -86,6 +86,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.format', 'group')
             ->assertJsonPath('data.starting_price.pricing_type', 'per_person')
             ->assertJsonPath('data.start_time', '09:00')
+            ->assertJsonPath('data.end_time', '17:00')
             ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
             ->assertJsonMissingPath('data.upcoming_departures');
 
@@ -181,7 +182,7 @@ final class PublicCatalogAndEstimateTest extends TestCase
         $car = Car::query()->where('plate_number', 'AMT-501')->firstOrFail();
         $date = now()->addDays(14)->toDateString();
 
-        $this->postJson('/api/v1/pricing/tours/estimate', [
+        $estimate = $this->postJson('/api/v1/pricing/tours/estimate', [
             'tour_id' => $tour->id,
             'car_id' => $car->id,
             'booking_date' => $date,
@@ -191,6 +192,9 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.meeting_point', 'Republic Square, Yerevan')
             ->assertJsonPath('data.passengers', 2)
             ->assertJsonPath('data.price.total_minor', 5000);
+
+        $this->assertSame('09:00', substr((string) $estimate->json('data.starts_at'), 11, 5));
+        $this->assertSame('17:00', substr((string) $estimate->json('data.ends_at'), 11, 5));
     }
 
     public function test_private_tour_estimate_uses_that_tours_selected_car_type_price(): void

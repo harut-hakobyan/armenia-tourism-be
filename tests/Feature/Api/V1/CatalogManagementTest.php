@@ -168,14 +168,17 @@ final class CatalogManagementTest extends TestCase
         $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$tour->id}", [
             'format' => 'group',
             'start_time' => '08:30',
+            'end_time' => '17:45',
             'meeting_point' => 'Cascade Complex, Yerevan',
         ])->assertOk()
             ->assertJsonPath('data.start_time', '08:30')
+            ->assertJsonPath('data.end_time', '17:45')
             ->assertJsonPath('data.meeting_point', 'Cascade Complex, Yerevan');
 
         $this->assertDatabaseHas('tours', [
             'id' => $tour->id,
             'start_time' => '08:30',
+            'end_time' => '17:45',
             'meeting_point' => 'Cascade Complex, Yerevan',
         ]);
     }

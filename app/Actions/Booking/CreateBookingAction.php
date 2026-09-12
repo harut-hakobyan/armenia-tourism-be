@@ -105,12 +105,10 @@ final class CreateBookingAction
             if ($isPremium && $data->passengers > $car->passenger_capacity) {
                 throw new BookingUnavailableException('Passenger count exceeds the selected Premium vehicle capacity.');
             }
-            $startsAt = $tour?->format === TourFormat::Group && $tour->start_time
-                ? $data->startsAt->setTimeFromTimeString((string) $tour->start_time)
+            $startsAt = $tour?->format === TourFormat::Group
+                ? ($tour->scheduledStartAt($data->startsAt) ?? $data->startsAt)
                 : $data->startsAt;
-            $endsAt = $data->serviceType === ServiceType::Tour
-                ? $startsAt->addMinutes($tour->duration_minutes)
-                : $this->plannedEnd($data, $tour, $route);
+            $endsAt = $this->plannedEnd($data, $tour, $route, $startsAt);
 
             $promo = $data->promoCode
                 ? PromoCode::query()->where('code', mb_strtoupper(trim($data->promoCode)))->lockForUpdate()->first()
@@ -205,8 +203,19 @@ final class CreateBookingAction
         );
     }
 
-    private function plannedEnd(CreateBookingData $data, ?Tour $tour, ?RouteResult $route): CarbonImmutable
-    {
+    private function plannedEnd(
+        CreateBookingData $data,
+        ?Tour $tour,
+        ?RouteResult $route,
+        CarbonImmutable $startsAt,
+    ): CarbonImmutable {
+        if ($data->serviceType === ServiceType::Tour && $tour?->format === TourFormat::Group) {
+            $scheduledEnd = $tour->scheduledEndAt($startsAt);
+            if ($scheduledEnd) {
+                return $scheduledEnd;
+            }
+        }
+
         $minutes = match ($data->serviceType) {
             ServiceType::Tour => $tour?->duration_minutes,
             ServiceType::AirportTransfer => $route
@@ -220,7 +229,7 @@ final class CreateBookingAction
             throw new BookingUnavailableException('The selected service has no valid duration.');
         }
 
-        return $data->startsAt->addMinutes($minutes);
+        return $startsAt->addMinutes($minutes);
     }
 
     private function calculatePrice(
@@ -282,6 +291,9 @@ final class CreateBookingAction
                     'format' => $tour->format->value,
                     'start_time' => $tour->format === TourFormat::Group
                         ? substr((string) $tour->start_time, 0, 5)
+                        : null,
+                    'end_time' => $tour->format === TourFormat::Group
+                        ? substr((string) $tour->end_time, 0, 5)
                         : null,
                     'meeting_point' => $tour->format === TourFormat::Group ? $tour->meeting_point : null,
                     'translations' => $tour->translations->mapWithKeys(
