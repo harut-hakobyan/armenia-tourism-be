@@ -26,6 +26,8 @@ final class TourResource extends JsonResource
             'title' => $translation?->title,
             'short_description' => $translation?->short_description,
             'description' => $translation?->description,
+            'inclusions' => $translation?->inclusions ?? [],
+            'exclusions' => $translation?->exclusions ?? [],
             'category' => $this->whenLoaded(
                 'category',
                 fn () => $this->category ? new TourCategoryResource($this->category) : null,

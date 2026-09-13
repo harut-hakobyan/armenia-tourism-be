@@ -78,6 +78,8 @@ final class PublicCatalogAndEstimateTest extends TestCase
             ->assertJsonPath('data.car_type_prices.0.type', 'premier')
             ->assertJsonPath('data.car_type_prices.1.type', 'sedan')
             ->assertJsonPath('data.car_type_prices.2.type', 'minivan')
+            ->assertJsonPath('data.inclusions', [])
+            ->assertJsonPath('data.exclusions', [])
             ->assertJsonCount(5, 'data.itinerary')
             ->assertJsonPath('data.itinerary.1.destination.slug', 'garni');
 
