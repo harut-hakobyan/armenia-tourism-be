@@ -43,7 +43,8 @@ final class AdminTourResource extends JsonResource
                 return ['type' => $type->value, 'price_minor' => $price?->fixed_price_minor ?? 0];
             })),
             'translations' => $this->translations->map->only([
-                'locale', 'title', 'short_description', 'description', 'seo_title', 'seo_description',
+                'locale', 'title', 'short_description', 'description', 'inclusions', 'exclusions',
+                'seo_title', 'seo_description',
             ])->values(),
             'itinerary' => $this->whenLoaded('stops', fn () => $this->stops->map(static function ($stop): array {
                 $translation = $stop->destination?->translations->firstWhere('locale', 'en')

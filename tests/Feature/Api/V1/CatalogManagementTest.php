@@ -49,6 +49,8 @@ final class CatalogManagementTest extends TestCase
                 'title' => 'Armenia Highlights',
                 'short_description' => 'A private Armenia highlights tour.',
                 'description' => 'A full description of this Armenia journey.',
+                'inclusions' => ['Private transportation', 'Bottled water'],
+                'exclusions' => ['Entrance fees', 'Meals'],
                 'seo_title' => 'Armenia Highlights Tour',
                 'seo_description' => 'Book an Armenia highlights tour.',
             ]],
@@ -59,8 +61,15 @@ final class CatalogManagementTest extends TestCase
             ->assertJsonPath('data.slug', 'armenia-highlights-test')
             ->assertJsonPath('data.starting_price_minor', 9000)
             ->assertJsonPath('data.car_type_prices.2.price_minor', 14000)
-            ->assertJsonPath('data.translations.0.title', 'Armenia Highlights');
+            ->assertJsonPath('data.translations.0.title', 'Armenia Highlights')
+            ->assertJsonPath('data.translations.0.inclusions.0', 'Private transportation')
+            ->assertJsonPath('data.translations.0.exclusions.1', 'Meals');
         $id = $created->json('data.id');
+
+        $this->getJson('/api/v1/tours/armenia-highlights-test?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.inclusions.1', 'Bottled water')
+            ->assertJsonPath('data.exclusions.0', 'Entrance fees');
 
         $this->actingAs($admin)->patchJson("/api/v1/admin/directory/tours/{$id}", [
             'featured' => true,
