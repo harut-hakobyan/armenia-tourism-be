@@ -44,8 +44,8 @@ final class PublicCatalogAndEstimateTest extends TestCase
         $this->getJson('/api/v1/destinations/lake-sevan?locale=fa')
             ->assertOk()
             ->assertHeader('Content-Language', 'fa')
-            ->assertJsonPath('data.locale', 'en')
-            ->assertJsonPath('data.name', 'Lake Sevan');
+            ->assertJsonPath('data.locale', 'fa')
+            ->assertJsonPath('data.name', 'دریاچه سوان');
 
         Destination::query()->where('slug', 'garni')->update(['active' => false]);
         $this->getJson('/api/v1/destinations/garni')->assertNotFound();
