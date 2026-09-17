@@ -20,7 +20,7 @@ final class CustomTripEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', 'in:'.implode(',', config('tourism.locales'))],
             'car_id' => ['required', 'integer', 'exists:cars,id'],
             'passengers' => ['required', 'integer', 'min:1', 'max:255'],
             'promo_code' => ['nullable', 'string', 'max:50'],

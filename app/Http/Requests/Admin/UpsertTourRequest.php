@@ -45,7 +45,7 @@ final class UpsertTourRequest extends FormRequest
             'free_cancellation_hours' => [$required, 'integer', 'min:0', 'max:8760'],
             'sort_order' => [$required, 'integer', 'min:0', 'max:100000'],
             'translations' => [$required, 'array', 'min:1'],
-            'translations.*.locale' => ['required', 'string', Rule::in(['en', 'ru', 'hy']), 'distinct'],
+            'translations.*.locale' => ['required', 'string', Rule::in(config('tourism.locales')), 'distinct'],
             'translations.*.title' => ['required', 'string', 'max:255'],
             'translations.*.short_description' => ['nullable', 'string', 'max:5000'],
             'translations.*.description' => ['nullable', 'string'],

@@ -28,7 +28,7 @@ final class ListCarsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', Rule::in(config('tourism.locales'))],
             'category' => ['nullable', Rule::enum(CarCategory::class)],
             'type' => ['nullable', Rule::enum(CarType::class)],
             'passengers' => ['nullable', 'integer', 'min:1', 'max:20'],

@@ -6,6 +6,7 @@ namespace App\Http\Requests\PublicApi;
 
 use App\Http\Requests\PublicApi\Concerns\NormalizesQueryBooleans;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class ListDestinationsRequest extends FormRequest
 {
@@ -25,7 +26,7 @@ final class ListDestinationsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', Rule::in(config('tourism.locales'))],
             'featured' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

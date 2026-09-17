@@ -20,7 +20,7 @@ final class TransferEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', 'in:'.implode(',', config('tourism.locales'))],
             'car_id' => ['required', 'integer', 'exists:cars,id'],
             'passengers' => ['required', 'integer', 'min:1', 'max:20'],
             'extra_waiting_minutes' => ['nullable', 'integer', 'min:0', 'max:360'],

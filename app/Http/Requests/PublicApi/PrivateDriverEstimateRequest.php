@@ -17,7 +17,7 @@ final class PrivateDriverEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', 'in:'.implode(',', config('tourism.locales'))],
             'car_id' => ['required', 'integer', 'exists:cars,id'],
             'duration_minutes' => ['required', 'integer', 'min:60', 'max:1440'],
             'passengers' => ['required', 'integer', 'min:1', 'max:20'],
