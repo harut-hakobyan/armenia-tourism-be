@@ -37,8 +37,7 @@ final class MediaController extends Controller
         int $id,
         AuditLogger $audit,
         ImageOptimizer $imageOptimizer,
-    ): MediaResource
-    {
+    ): MediaResource {
         $validated = $request->validate([
             'file' => [
                 'required',
