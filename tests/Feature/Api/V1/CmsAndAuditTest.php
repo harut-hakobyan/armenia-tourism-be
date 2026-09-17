@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Car;
 use App\Models\ContactInquiry;
 use App\Models\Faq;
+use App\Models\Media;
 use App\Models\PromoCode;
 use App\Models\Setting;
 use App\Models\Tour;
@@ -165,7 +166,15 @@ final class CmsAndAuditTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.alt_text', 'Comfort car');
 
         $mediaId = $response->json('data.id');
-        $this->assertDatabaseHas('media', ['id' => $mediaId, 'mediable_type' => Car::class, 'mediable_id' => $car->id]);
+        $this->assertDatabaseHas('media', [
+            'id' => $mediaId,
+            'mediable_type' => Car::class,
+            'mediable_id' => $car->id,
+            'mime_type' => 'image/webp',
+        ]);
+        $media = Media::query()->findOrFail($mediaId);
+        $this->assertStringEndsWith('.webp', $media->path);
+        $this->assertSame('image/webp', (new \finfo(FILEINFO_MIME_TYPE))->buffer(Storage::disk('public')->get($media->path)));
         $cars = $this->actingAs($admin)->getJson('/api/v1/admin/directory/cars?per_page=100')->assertOk()->json('data');
         $this->assertSame($mediaId, collect($cars)->firstWhere('id', $car->id)['cover_image']['id']);
         $this->getJson("/api/v1/cars/{$car->id}")->assertOk()->assertJsonPath('data.cover_image.id', $mediaId);
@@ -192,7 +201,7 @@ final class CmsAndAuditTest extends TestCase
                     'collection' => 'gallery',
                     'url' => $tourMedia->json('data.url'),
                     'alt_text' => 'Garni tour',
-                    'mime_type' => 'image/png',
+                    'mime_type' => 'image/webp',
                 ]],
             ]);
         $this->actingAs($admin)->getJson("/api/v1/admin/media/tours/{$tour->id}")
@@ -223,6 +232,26 @@ final class CmsAndAuditTest extends TestCase
         $this->actingAs($admin)->getJson('/api/v1/admin/directory/tours?per_page=100')
             ->assertOk()
             ->assertJsonFragment(['id' => $second->json('data.id')]);
+    }
+
+    public function test_admin_can_keep_an_uploaded_image_uncompressed(): void
+    {
+        Storage::fake('public');
+        config()->set('filesystems.default', 'public');
+        $this->seed();
+        $admin = User::query()->where('role', UserRole::Admin)->firstOrFail();
+        $car = Car::query()->firstOrFail();
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true);
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/admin/media/cars/{$car->id}", [
+            'file' => UploadedFile::fake()->createWithContent('original.png', $png),
+            'collection' => 'cover',
+            'compress' => false,
+        ])->assertCreated()->assertJsonPath('data.mime_type', 'image/png');
+
+        $media = Media::query()->findOrFail($response->json('data.id'));
+        $this->assertStringEndsWith('.png', $media->path);
+        $this->assertSame($png, Storage::disk('public')->get($media->path));
     }
 
     public function test_admin_can_upload_replace_and_remove_a_tour_video(): void

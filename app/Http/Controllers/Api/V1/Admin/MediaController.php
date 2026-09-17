@@ -13,6 +13,7 @@ use App\Models\Media;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Services\Audit\AuditLogger;
+use App\Services\Media\ImageOptimizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -30,7 +31,13 @@ final class MediaController extends Controller
         return MediaResource::collection($subject->media()->get());
     }
 
-    public function store(Request $request, string $type, int $id, AuditLogger $audit): MediaResource
+    public function store(
+        Request $request,
+        string $type,
+        int $id,
+        AuditLogger $audit,
+        ImageOptimizer $imageOptimizer,
+    ): MediaResource
     {
         $validated = $request->validate([
             'file' => [
@@ -49,6 +56,7 @@ final class MediaController extends Controller
             )],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'compress' => ['sometimes', 'boolean'],
         ]);
         $subject = $this->subject($type, $id);
         $replacedMedia = in_array($validated['collection'], ['cover', 'profile', 'video'], true)
@@ -57,8 +65,16 @@ final class MediaController extends Controller
         $file = $request->file('file');
         $disk = (string) config('filesystems.default', 'public');
         abort_if($disk === 'local', 500, 'FILESYSTEM_DISK must be a publicly addressable disk for website media.');
-        $path = $file->storeAs("media/{$type}", Str::uuid().'.'.$file->extension(), $disk);
-        abort_if($path === false, 500, 'Media storage failed.');
+        $isVideo = $validated['collection'] === 'video';
+        $optimized = $isVideo || ! $request->boolean('compress', true)
+            ? null
+            : $imageOptimizer->optimize($file);
+        $extension = $optimized['extension'] ?? $file->extension();
+        $path = "media/{$type}/".Str::uuid().'.'.$extension;
+        $stored = $optimized === null
+            ? Storage::disk($disk)->putFileAs("media/{$type}", $file, basename($path))
+            : Storage::disk($disk)->put($path, $optimized['contents']);
+        abort_if($stored === false, 500, 'Media storage failed.');
 
         try {
             $media = $subject->media()->create([
@@ -66,8 +82,8 @@ final class MediaController extends Controller
                 'disk' => $disk,
                 'path' => $path,
                 'file_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
-                'size_bytes' => $file->getSize(),
+                'mime_type' => $optimized['mime_type'] ?? ($file->getMimeType() ?: 'application/octet-stream'),
+                'size_bytes' => $optimized['size'] ?? $file->getSize(),
                 'alt_text' => $validated['alt_text'] ?? null,
                 'sort_order' => $validated['sort_order'] ?? 0,
             ]);
