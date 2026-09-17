@@ -53,6 +53,12 @@ services:
       frontend:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/robots.txt"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   queue:
     build:

@@ -56,6 +56,9 @@ jobs:
 
             docker compose restart queue scheduler
 
+            curl --fail --silent --show-error --retry 10 --retry-delay 3 \
+              http://127.0.0.1:${APP_PORT:-8000}/robots.txt >/dev/null
+
             docker image prune -f
 
   deploy-staging:
@@ -104,5 +107,8 @@ jobs:
             docker compose exec -T app php artisan route:cache
 
             docker compose restart queue scheduler
+
+            curl --fail --silent --show-error --retry 10 --retry-delay 3 \
+              http://127.0.0.1:${APP_PORT:-8000}/robots.txt >/dev/null
 
             docker image prune -f
