@@ -56,8 +56,10 @@ jobs:
 
             docker compose restart queue scheduler
 
+            NGINX_ENDPOINT="$(docker compose port nginx 80)"
+            test -n "$NGINX_ENDPOINT"
             curl --fail --silent --show-error --retry 10 --retry-delay 3 \
-              http://127.0.0.1:${APP_PORT:-8000}/robots.txt >/dev/null
+              "http://${NGINX_ENDPOINT}/robots.txt" >/dev/null
 
             docker image prune -f
 
@@ -108,7 +110,9 @@ jobs:
 
             docker compose restart queue scheduler
 
+            NGINX_ENDPOINT="$(docker compose port nginx 80)"
+            test -n "$NGINX_ENDPOINT"
             curl --fail --silent --show-error --retry 10 --retry-delay 3 \
-              http://127.0.0.1:${APP_PORT:-8000}/robots.txt >/dev/null
+              "http://${NGINX_ENDPOINT}/robots.txt" >/dev/null
 
             docker image prune -f
