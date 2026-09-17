@@ -31,19 +31,14 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            cd ../armenia-tourism-fe
-            git fetch origin
-            git reset --hard origin/master
-            cd ../armenia-tourism-be
-
-            docker compose build frontend app queue scheduler
+            docker compose build app queue scheduler
 
             if ! docker compose up -d --wait --wait-timeout 180 \
+              --no-deps \
               --force-recreate \
-              frontend app queue scheduler nginx; then
+              app queue scheduler; then
               docker compose ps
-              docker compose logs --tail=200 frontend app nginx
-              docker inspect --format '{{json .State.Health}}' armenia-tourism-be-frontend-1 || true
+              docker compose logs --tail=200 app queue scheduler nginx
               exit 1
             fi
 
@@ -55,6 +50,7 @@ jobs:
             docker compose exec -T app php artisan route:cache
 
             docker compose restart queue scheduler
+            docker compose exec -T nginx nginx -s reload
 
             NGINX_ENDPOINT="$(docker compose port nginx 80)"
             test -n "$NGINX_ENDPOINT"
@@ -85,19 +81,14 @@ jobs:
             git fetch origin
             git reset --hard origin/staging
 
-            cd ../armenia-tourism-fe
-            git fetch origin
-            git reset --hard origin/staging
-            cd ../armenia-tourism-be
-
-            docker compose build frontend app queue scheduler
+            docker compose build app queue scheduler
 
             if ! docker compose up -d --wait --wait-timeout 180 \
+              --no-deps \
               --force-recreate \
-              frontend app queue scheduler nginx; then
+              app queue scheduler; then
               docker compose ps
-              docker compose logs --tail=200 frontend app nginx
-              docker inspect --format '{{json .State.Health}}' armenia-tourism-be-frontend-1 || true
+              docker compose logs --tail=200 app queue scheduler nginx
               exit 1
             fi
 
@@ -109,6 +100,7 @@ jobs:
             docker compose exec -T app php artisan route:cache
 
             docker compose restart queue scheduler
+            docker compose exec -T nginx nginx -s reload
 
             NGINX_ENDPOINT="$(docker compose port nginx 80)"
             test -n "$NGINX_ENDPOINT"
