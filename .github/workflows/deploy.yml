@@ -31,13 +31,19 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            docker compose build app queue scheduler
+            cd ../armenia-tourism-fe
+            git fetch origin
+            git reset --hard origin/master
+            cd ../armenia-tourism-be
+
+            docker compose build frontend app queue scheduler
 
             docker compose up -d \
               --force-recreate \
-              app queue scheduler nginx
+              frontend app queue scheduler nginx
 
             docker compose exec -T app php artisan migrate --force
+            docker compose exec -T app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
 
             docker compose exec -T app php artisan optimize:clear
             docker compose exec -T app php artisan config:cache
@@ -69,13 +75,19 @@ jobs:
             git fetch origin
             git reset --hard origin/staging
 
-            docker compose build app queue scheduler
+            cd ../armenia-tourism-fe
+            git fetch origin
+            git reset --hard origin/staging
+            cd ../armenia-tourism-be
+
+            docker compose build frontend app queue scheduler
 
             docker compose up -d \
               --force-recreate \
-              app queue scheduler nginx
+              frontend app queue scheduler nginx
 
             docker compose exec -T app php artisan migrate --force
+            docker compose exec -T app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
 
             docker compose exec -T app php artisan optimize:clear
             docker compose exec -T app php artisan config:cache

@@ -6,17 +6,17 @@
 - TLS termination at a host reverse proxy or managed load balancer
 - `nginx`, `app`, `queue`, and `scheduler` containers from this repository
 - persistent MySQL and Redis volumes, with external managed services preferred at scale
-- React frontend built separately and served from its Nginx image or a CDN
+- Next.js frontend container built from the sibling `armenia-tourism-fe` repository
 
 ## First deployment
 
 1. Copy `.env.example` to `.env` and set `APP_ENV=production`, `APP_DEBUG=false`, a unique `APP_KEY`, production URLs, database passwords, mail credentials, and administrator credentials.
-2. Set `FRONTEND_URL` and `SANCTUM_STATEFUL_DOMAINS` to the real HTTPS frontend origin. Do not include URL paths in the stateful-domain value.
+2. Set `FRONTEND_URL=https://tour-armenia.com`, `SITE_URL=https://tour-armenia.com`, and `SANCTUM_STATEFUL_DOMAINS=tour-armenia.com`. Do not include URL paths in the stateful-domain value.
 3. Build and start the services:
 
 ```bash
 docker compose build --pull
-docker compose up -d mysql redis app queue scheduler nginx
+docker compose up -d mysql redis frontend app queue scheduler nginx
 docker compose exec app php artisan migrate --force
 docker compose exec app php artisan config:cache
 docker compose exec app php artisan route:cache
@@ -28,13 +28,22 @@ Seeders contain local demonstration content and credentials. Run `php artisan db
 
 ```bash
 git pull --ff-only
-docker compose build app queue scheduler
-docker compose up -d --no-deps app queue scheduler
+docker compose build frontend app queue scheduler
+docker compose up -d --no-deps frontend app queue scheduler
 docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
 docker compose exec app php artisan optimize
 ```
 
-Build the frontend with `VITE_API_BASE_URL=https://api.example.com/api/v1`. Its Nginx configuration supports React Router fallback and immutable asset caching.
+The frontend uses `NEXT_PUBLIC_API_BASE_URL=/api/v1`; server rendering reaches Laravel through `LARAVEL_INTERNAL_API_URL=http://nginx/api/v1`. Set `SITE_URL=https://tour-armenia.com` before building or starting the production stack.
+
+After the containers are healthy, run the frontend's external checks from a machine outside the server:
+
+```bash
+cd ../armenia-tourism-fe
+npm run test:live
+NEXT_SMOKE_ORIGIN=https://tour-armenia.com npm run test:seo
+```
 
 ## Operations
 
@@ -49,6 +58,7 @@ Build the frontend with `VITE_API_BASE_URL=https://api.example.com/api/v1`. Its 
 
 - Use generated secrets and restrict database/Redis forwarded ports at the firewall; remove their host port mappings when external access is unnecessary.
 - Terminate TLS and redirect HTTP to HTTPS at the edge.
+- Replace the old static-React virtual host with `docs/nginx-host-tour-armenia.conf.example`, verify the certificate paths, run `nginx -t`, and reload the host Nginx service.
 - Keep `APP_DEBUG=false`; never expose `.env`, logs, or storage internals.
 - Public booking, estimate, contact, review, and login endpoints are rate limited.
 - Uploaded images are restricted to JPEG, PNG, and WebP, validated by content, capped at 10 MB, renamed with UUIDs, and stored through Laravel's filesystem abstraction.

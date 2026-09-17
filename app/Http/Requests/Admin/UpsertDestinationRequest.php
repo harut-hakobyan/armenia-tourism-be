@@ -29,7 +29,7 @@ final class UpsertDestinationRequest extends FormRequest
             'featured' => [$required, 'boolean'],
             'sort_order' => [$required, 'integer', 'min:0', 'max:100000'],
             'translations' => [$required, 'array', 'min:1'],
-            'translations.*.locale' => ['required', 'string', Rule::in(['en', 'ru', 'hy']), 'distinct'],
+            'translations.*.locale' => ['required', 'string', Rule::in(config('tourism.locales')), 'distinct'],
             'translations.*.name' => ['required', 'string', 'max:255'],
             'translations.*.short_description' => ['nullable', 'string', 'max:5000'],
             'translations.*.description' => ['nullable', 'string'],

@@ -33,7 +33,7 @@ final class UpsertDriverRequest extends FormRequest
                 Rule::unique('drivers', 'email')->ignore($driver?->id),
             ],
             'password' => [$driver ? 'nullable' : 'required', 'string', 'min:8', 'max:255'],
-            'locale' => ['sometimes', Rule::in(['en', 'ru', 'hy'])],
+            'locale' => ['sometimes', Rule::in(config('tourism.locales'))],
             'languages' => ['sometimes', 'array', 'max:10'],
             'languages.*' => ['string', 'distinct', 'max:10'],
             'experience_years' => ['sometimes', 'integer', 'min:0', 'max:80'],

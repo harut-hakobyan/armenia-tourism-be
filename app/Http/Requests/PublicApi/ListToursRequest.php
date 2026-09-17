@@ -26,7 +26,7 @@ final class ListToursRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', Rule::in(config('tourism.locales'))],
             'category' => ['nullable', 'string', 'max:100', 'exists:tour_categories,slug'],
             'format' => ['nullable', Rule::in(['private', 'group'])],
             'featured' => ['nullable', 'boolean'],

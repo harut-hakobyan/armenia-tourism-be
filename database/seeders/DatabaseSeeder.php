@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             TourSeeder::class,
             PromoCodeSeeder::class,
             CmsSeeder::class,
+            PersianContentSeeder::class,
         ]);
     }
 }

@@ -17,7 +17,7 @@ final class TourEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'locale' => ['nullable', 'in:en,ru,hy'],
+            'locale' => ['nullable', 'in:'.implode(',', config('tourism.locales'))],
             'tour_id' => ['required', 'integer', 'exists:tours,id'],
             'car_id' => ['nullable', 'integer', 'exists:cars,id'],
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
