@@ -38,9 +38,14 @@ jobs:
 
             docker compose build frontend app queue scheduler
 
-            docker compose up -d \
+            if ! docker compose up -d --wait --wait-timeout 180 \
               --force-recreate \
-              frontend app queue scheduler nginx
+              frontend app queue scheduler nginx; then
+              docker compose ps
+              docker compose logs --tail=200 frontend app nginx
+              docker inspect --format '{{json .State.Health}}' armenia-tourism-be-frontend-1 || true
+              exit 1
+            fi
 
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
@@ -82,9 +87,14 @@ jobs:
 
             docker compose build frontend app queue scheduler
 
-            docker compose up -d \
+            if ! docker compose up -d --wait --wait-timeout 180 \
               --force-recreate \
-              frontend app queue scheduler nginx
+              frontend app queue scheduler nginx; then
+              docker compose ps
+              docker compose logs --tail=200 frontend app nginx
+              docker inspect --format '{{json .State.Health}}' armenia-tourism-be-frontend-1 || true
+              exit 1
+            fi
 
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
