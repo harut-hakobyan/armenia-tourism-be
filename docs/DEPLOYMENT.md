@@ -24,15 +24,33 @@ docker compose exec app php artisan route:cache
 
 Seeders contain local demonstration content and credentials. Run `php artisan db:seed --force` only when that data is intentionally wanted.
 
-## Release procedure
+## Release procedures
+
+Backend and frontend releases are independent. A backend release must not fetch,
+build, or recreate the frontend, and a frontend release must not fetch, build, or
+recreate the Laravel application, queue, or scheduler.
+
+### Backend release
 
 ```bash
 git pull --ff-only
-docker compose build frontend app queue scheduler
-docker compose up -d --no-deps frontend app queue scheduler
+docker compose build app queue scheduler
+docker compose up -d --wait --no-deps --force-recreate app queue scheduler
 docker compose exec app php artisan migrate --force
 docker compose exec app php artisan db:seed --class=Database\\Seeders\\PersianContentSeeder --force
 docker compose exec app php artisan optimize
+docker compose exec nginx nginx -s reload
+```
+
+### Frontend release
+
+Run these commands from the backend repository after updating only the sibling
+`armenia-tourism-fe` checkout:
+
+```bash
+docker compose build frontend
+docker compose up -d --wait --no-deps --force-recreate frontend
+docker compose exec nginx nginx -s reload
 ```
 
 The frontend uses `NEXT_PUBLIC_API_BASE_URL=/api/v1`; server rendering reaches Laravel through `LARAVEL_INTERNAL_API_URL=http://nginx/api/v1`. Set `SITE_URL=https://tour-armenia.com` before building or starting the production stack.
