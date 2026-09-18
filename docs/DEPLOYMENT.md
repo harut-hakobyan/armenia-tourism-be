@@ -6,7 +6,7 @@
 - TLS termination at a host reverse proxy or managed load balancer
 - `nginx`, `app`, `queue`, and `scheduler` containers from this repository
 - persistent MySQL and Redis volumes, with external managed services preferred at scale
-- Next.js frontend container built from the sibling `armenia-tourism-fe` repository
+- Next.js frontend image built by GitHub Actions and published to GitHub Container Registry
 
 ## First deployment
 
@@ -44,14 +44,21 @@ docker compose exec nginx nginx -s reload
 
 ### Frontend release
 
-Run these commands from the backend repository after updating only the sibling
-`armenia-tourism-fe` checkout:
+Frontend pushes build an immutable image in GitHub Actions, tagged with the Git
+commit SHA. The server pulls that image instead of compiling Next.js locally.
+Set `FRONTEND_IMAGE` to the published image and run these commands from the
+backend repository:
 
 ```bash
-docker compose build frontend
-docker compose up -d --wait --no-deps --force-recreate frontend
+FRONTEND_IMAGE=ghcr.io/harut-hakobyan/armenia-tourism-fe:<commit-sha> docker compose pull frontend
+FRONTEND_IMAGE=ghcr.io/harut-hakobyan/armenia-tourism-fe:<commit-sha> docker compose up -d --wait --no-deps --force-recreate frontend
 docker compose exec nginx nginx -s reload
 ```
+
+The deployment workflow records the currently running image before replacement.
+If the new container or external health check fails, it restores that previous
+image automatically. The server authenticates to `ghcr.io` with the workflow's
+short-lived GitHub token; no registry credential is stored in source control.
 
 The frontend uses `NEXT_PUBLIC_API_BASE_URL=/api/v1`; server rendering reaches Laravel through `LARAVEL_INTERNAL_API_URL=http://nginx/api/v1`. Set `SITE_URL=https://tour-armenia.com` before building or starting the production stack.
 
@@ -85,4 +92,11 @@ NEXT_SMOKE_ORIGIN=https://tour-armenia.com npm run test:seo
 
 ## Rollback
 
-Deploy the previous immutable image and restore a compatible database backup when a migration is not backward compatible. Avoid automatic `migrate:rollback` in production because migrations may contain irreversible data transformations.
+Frontend deployment automatically restores the previously running immutable
+image when its health verification fails. For a manual frontend rollback, set
+`FRONTEND_IMAGE` to a previous commit tag and recreate only the frontend service.
+
+For backend rollback, deploy the previous version and restore a compatible
+database backup when a migration is not backward compatible. Avoid automatic
+`migrate:rollback` in production because migrations may contain irreversible data
+transformations.
